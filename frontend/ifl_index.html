@@ -1,0 +1,4056 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>IFL · Service Contract Intelligence Engine</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --red: #2a000a;
+        --black: #111012;
+        --gold: #c9a84c;
+        --green: #7dff9a;
+        --light: #f5f0e8;
+        --dim: rgba(245, 240, 232, 0.62);
+        --border: rgba(201, 168, 76, 0.24);
+        --border2: rgba(201, 168, 76, 0.4);
+        --danger: #ff9a9a;
+        --goldgrad: linear-gradient(
+          to bottom,
+          #cf972d 22%,
+          #f9f295 45%,
+          #e0aa3e 50%,
+          #b8860b 55%,
+          #f9f295 78%
+        );
+        --sheen: linear-gradient(
+          160deg,
+          #2e2b32 0%,
+          #1a1820 18%,
+          #0e0d10 40%,
+          #161418 60%,
+          #1f1d23 80%,
+          #111012 100%
+        );
+        --glow: 0 0 20px rgba(201, 168, 76, 0.12);
+        --ai-glow: 0 0 30px rgba(100, 160, 255, 0.2);
+      }
+      body {
+        min-height: 100vh;
+        background-color: var(--red);
+        background-image:
+          radial-gradient(
+            ellipse at 35% 0%,
+            rgba(240, 0, 45, 0.5),
+            transparent 55%
+          ),
+          radial-gradient(
+            ellipse at 15% 100%,
+            rgba(240, 0, 45, 0.35),
+            transparent 50%
+          );
+        font-family: "Cormorant Garamond", serif;
+        color: var(--light);
+        padding: 24px;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      .gold-text {
+        background: var(--goldgrad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* HEADER */
+      header {
+        margin-bottom: 24px;
+        padding: 16px 24px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.25);
+        box-shadow: var(--glow);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      header img {
+        height: 152px;
+        width: auto;
+        object-fit: contain;
+      }
+      .header-text {
+        flex: 1;
+      }
+      .eyebrow {
+        font-family: "Cinzel", serif;
+        font-size: 13px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: rgba(201, 168, 76, 0.65);
+        margin-bottom: 4px;
+      }
+      h1 {
+        font-family: "Cinzel", serif;
+        font-size: clamp(22px, 4vw, 38px);
+        line-height: 1;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        font-size: 16px;
+        color: var(--dim);
+        letter-spacing: 0.04em;
+      }
+
+      /* CHEVRON NAV */
+      .chevron-nav {
+        display: flex;
+        margin: 20px 0;
+        overflow-x: auto;
+        align-items: stretch;
+      }
+      .chevron-step {
+        flex-shrink: 0;
+        padding: 11px 18px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border);
+        border-left: none;
+        font-family: "Cinzel", serif;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+        cursor: pointer;
+        transition: all 0.25s;
+        clip-path: polygon(20% 0%, 100% 0%, 80% 100%, 0% 100%);
+        margin-left: -6px;
+        z-index: 1;
+      }
+      .chevron-step:first-child {
+        clip-path: polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%);
+        margin-left: 0;
+        border-left: 1px solid var(--border);
+      }
+      .chevron-step:last-child {
+        clip-path: polygon(20% 0%, 100% 0%, 100% 100%, 0% 100%);
+      }
+      .chevron-step.active {
+        background: var(--goldgrad);
+        color: #1a0005;
+        font-weight: 700;
+        box-shadow: var(--glow);
+        z-index: 3;
+      }
+      .chevron-step.complete {
+        background: rgba(125, 255, 154, 0.15);
+        color: var(--green);
+        border-color: rgba(125, 255, 154, 0.4);
+      }
+      .chevron-step.complete::before {
+        content: "✓ ";
+        margin-right: 3px;
+      }
+      .chevron-step:hover:not(.active) {
+        background: rgba(201, 168, 76, 0.1);
+      }
+
+      /* STEPS */
+      .step-container {
+        display: none;
+      }
+      .step-container.active {
+        display: block;
+        animation: fadeIn 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* PANEL */
+      .panel {
+        background: var(--sheen);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--glow);
+        margin-bottom: 18px;
+      }
+      .panel::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.15),
+          var(--gold),
+          rgba(255, 255, 255, 0.15),
+          transparent
+        );
+      }
+      .panel.ai-panel {
+        border-color: rgba(100, 160, 255, 0.3);
+        box-shadow: var(--ai-glow);
+      }
+      .panel.ai-panel::before {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(100, 160, 255, 0.3),
+          rgba(150, 200, 255, 0.6),
+          rgba(100, 160, 255, 0.3),
+          transparent
+        );
+      }
+
+      .step-title {
+        font-family: "Cinzel", serif;
+        color: var(--gold);
+        font-size: 17px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      .step-desc {
+        font-size: 15px;
+        color: var(--dim);
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .section-label {
+        font-family: "Cinzel", serif;
+        font-size: 13px;
+        color: rgba(201, 168, 76, 0.72);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      /* FORMS */
+      textarea,
+      input,
+      select {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.34);
+        border: 1px solid rgba(201, 168, 76, 0.25);
+        color: var(--light);
+        padding: 10px 12px;
+        border-radius: 3px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 14px;
+        transition: border-color 0.2s;
+      }
+      textarea:focus,
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: rgba(201, 168, 76, 0.55);
+      }
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+      select option {
+        background: #1a0005;
+      }
+      label {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        color: rgba(201, 168, 76, 0.72);
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .form-grid.three {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+
+      /* BUTTONS */
+      button {
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border: 1px solid var(--gold);
+        background: var(--goldgrad);
+        color: #1a0005;
+        font-weight: 700;
+        padding: 11px 18px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: opacity 0.15s;
+      }
+      button:hover {
+        opacity: 0.82;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--gold);
+      }
+      button.danger {
+        background: transparent;
+        color: var(--danger);
+        border-color: #7c2222;
+      }
+      button.sm {
+        padding: 7px 12px;
+        font-size: 11px;
+      }
+      button.ai-btn {
+        background: linear-gradient(135deg, #1a2a4a, #0d1830);
+        border-color: rgba(100, 160, 255, 0.5);
+        color: #90c8ff;
+        letter-spacing: 0.08em;
+      }
+      button.ai-btn:hover {
+        border-color: rgba(100, 160, 255, 0.8);
+        opacity: 1;
+      }
+      button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      /* AI RESPONSE AREA */
+      .ai-output {
+        background: rgba(0, 5, 20, 0.6);
+        border: 1px solid rgba(100, 160, 255, 0.25);
+        border-radius: 5px;
+        padding: 16px;
+        margin-top: 12px;
+        font-family: "Cormorant Garamond", serif;
+        font-size: 16px;
+        line-height: 1.65;
+        color: var(--light);
+        min-height: 60px;
+        white-space: pre-wrap;
+        display: none;
+      }
+      .ai-output.visible {
+        display: block;
+      }
+      .ai-thinking {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: rgba(100, 160, 255, 0.7);
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        padding: 12px 0;
+      }
+      .ai-thinking .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(100, 160, 255, 0.7);
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      .ai-thinking .dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .ai-thinking .dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.3;
+          transform: scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .ai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(100, 160, 255, 0.12);
+        border: 1px solid rgba(100, 160, 255, 0.3);
+        border-radius: 2px;
+        padding: 3px 8px;
+        font-family: "Cinzel", serif;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: #90c8ff;
+        margin-bottom: 10px;
+      }
+
+      /* VERDICT BANNERS */
+      .verdict {
+        padding: 14px 18px;
+        border-radius: 4px;
+        font-family: "Cinzel", serif;
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        margin: 12px 0;
+        display: none;
+      }
+      .verdict.go {
+        background: rgba(125, 255, 154, 0.1);
+        border: 1px solid rgba(125, 255, 154, 0.35);
+        color: var(--green);
+        display: block;
+      }
+      .verdict.marginal {
+        background: rgba(201, 168, 76, 0.1);
+        border: 1px solid rgba(201, 168, 76, 0.35);
+        color: var(--gold);
+        display: block;
+      }
+      .verdict.pass {
+        background: rgba(255, 80, 80, 0.1);
+        border: 1px solid rgba(255, 80, 80, 0.3);
+        color: var(--danger);
+        display: block;
+      }
+
+      /* DISCOVERY ITEMS */
+      .discovery-item {
+        border: 1px solid var(--border2);
+        border-radius: 4px;
+        padding: 14px;
+        margin-bottom: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+      }
+      .discovery-item:hover {
+        border-color: var(--gold);
+        background: rgba(201, 168, 76, 0.04);
+      }
+      .discovery-item.selected {
+        border-color: var(--green);
+        background: rgba(125, 255, 154, 0.05);
+      }
+      .discovery-item.in-lane {
+        border-left: 3px solid var(--green);
+      }
+      .discovery-item.out-lane {
+        border-left: 3px solid rgba(255, 80, 80, 0.5);
+      }
+      .discovery-item.unknown-lane {
+        border-left: 3px solid var(--gold);
+      }
+      .disc-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .disc-radio {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        accent-color: var(--green);
+      }
+      .disc-body {
+        flex: 1;
+      }
+      .disc-title {
+        font-weight: 600;
+        color: var(--light);
+        font-size: 16px;
+        margin-bottom: 4px;
+      }
+      .disc-meta {
+        font-size: 13px;
+        color: var(--dim);
+        margin-bottom: 6px;
+      }
+      .disc-verdict {
+        font-family: "Cinzel", serif;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        padding: 2px 8px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .disc-verdict.go {
+        background: rgba(125, 255, 154, 0.15);
+        color: var(--green);
+        border: 1px solid rgba(125, 255, 154, 0.3);
+      }
+      .disc-verdict.pass {
+        background: rgba(255, 80, 80, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(255, 80, 80, 0.25);
+      }
+      .disc-verdict.pending {
+        background: rgba(201, 168, 76, 0.1);
+        color: var(--gold);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+      }
+      .disc-ai-reason {
+        font-size: 14px;
+        color: var(--dim);
+        line-height: 1.5;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid rgba(201, 168, 76, 0.1);
+      }
+      .lane-badge {
+        font-size: 11px;
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.06em;
+        padding: 2px 7px;
+        border-radius: 2px;
+        margin-left: 8px;
+      }
+      .lane-badge.go {
+        background: rgba(125, 255, 154, 0.15);
+        color: var(--green);
+      }
+      .lane-badge.pass {
+        background: rgba(255, 80, 80, 0.1);
+        color: var(--danger);
+      }
+
+      /* SOURCING CARDS */
+      .sourcing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .sourcing-card {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(201, 168, 76, 0.2);
+        border-radius: 5px;
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .sourcing-card:hover {
+        border-color: var(--gold);
+        transform: translateY(-2px);
+      }
+      .sourcing-card.selected {
+        border-color: var(--green);
+        background: rgba(125, 255, 154, 0.05);
+      }
+      .sourcing-card .sc-name {
+        font-family: "Cinzel", serif;
+        font-size: 14px;
+        letter-spacing: 0.06em;
+        color: var(--light);
+        margin-bottom: 4px;
+      }
+      .sourcing-card .sc-type {
+        font-size: 12px;
+        color: var(--gold);
+        margin-bottom: 8px;
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.06em;
+      }
+      .sourcing-card .sc-detail {
+        font-size: 14px;
+        color: var(--dim);
+        line-height: 1.5;
+        margin-bottom: 6px;
+      }
+      .sourcing-card .sc-rate {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        color: var(--green);
+        font-weight: 600;
+      }
+      .sourcing-card .sc-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 8px;
+      }
+      .sc-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        border-radius: 2px;
+        color: var(--gold);
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.04em;
+      }
+      .sc-tag.small {
+        border-color: rgba(125, 255, 154, 0.3);
+        color: var(--green);
+      }
+      .sourcing-card .sc-select {
+        display: none;
+        margin-top: 10px;
+        width: 100%;
+      }
+      .sourcing-card.selected .sc-select {
+        display: block;
+      }
+
+      /* PRICING */
+      .price-result {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        border-radius: 5px;
+        padding: 20px;
+        margin-top: 16px;
+        display: none;
+      }
+      .price-result.visible {
+        display: block;
+      }
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+      }
+      .price-row:last-child {
+        border: none;
+        padding-top: 12px;
+        margin-top: 4px;
+      }
+      .price-label {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: var(--dim);
+        text-transform: uppercase;
+      }
+      .price-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        color: var(--light);
+        font-weight: 600;
+      }
+      .price-val.green {
+        color: var(--green);
+      }
+      .price-val.gold {
+        background: var(--goldgrad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 20px;
+      }
+      .go-nogo {
+        padding: 12px 18px;
+        border-radius: 3px;
+        font-family: "Cinzel", serif;
+        font-size: 13px;
+        letter-spacing: 0.1em;
+        text-align: center;
+        margin-top: 10px;
+      }
+      .go-nogo.go {
+        background: rgba(125, 255, 154, 0.12);
+        border: 1px solid rgba(125, 255, 154, 0.3);
+        color: var(--green);
+      }
+      .go-nogo.marginal {
+        background: rgba(201, 168, 76, 0.1);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        color: var(--gold);
+      }
+      .go-nogo.nogo {
+        background: rgba(255, 80, 80, 0.08);
+        border: 1px solid rgba(255, 80, 80, 0.25);
+        color: var(--danger);
+      }
+
+      /* INTAKE AI FIELDS */
+      .ai-field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .ai-field {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(100, 160, 255, 0.2);
+        border-radius: 4px;
+        padding: 12px;
+      }
+      .af-label {
+        font-family: "Cinzel", serif;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        color: rgba(100, 160, 255, 0.65);
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .af-value {
+        font-size: 15px;
+        color: var(--light);
+        line-height: 1.4;
+      }
+      .af-value.mono {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 14px;
+      }
+      .af-value.edit {
+        background: transparent;
+        border: none;
+        padding: 0;
+        color: var(--light);
+        font-size: 15px;
+        width: 100%;
+      }
+      .af-value.edit:focus {
+        outline: none;
+        color: var(--green);
+      }
+
+      /* RISK FLAGS */
+      .risk-flags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .risk-flag {
+        padding: 4px 10px;
+        border-radius: 2px;
+        font-family: "Cinzel", serif;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+      }
+      .risk-flag.red {
+        background: rgba(255, 80, 80, 0.15);
+        border: 1px solid rgba(255, 80, 80, 0.3);
+        color: var(--danger);
+      }
+      .risk-flag.amber {
+        background: rgba(201, 168, 76, 0.12);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        color: var(--gold);
+      }
+      .risk-flag.green {
+        background: rgba(125, 255, 154, 0.1);
+        border: 1px solid rgba(125, 255, 154, 0.25);
+        color: var(--green);
+      }
+
+      /* PROPOSAL */
+      .proposal-box {
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(201, 168, 76, 0.2);
+        border-radius: 5px;
+        padding: 20px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        color: var(--light);
+        line-height: 1.6;
+        white-space: pre-wrap;
+        max-height: 520px;
+        overflow-y: auto;
+        margin-top: 14px;
+      }
+
+      /* SUMMARY TABLE */
+      .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+      .summary-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+        font-size: 15px;
+        vertical-align: top;
+      }
+      .summary-table td:first-child {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        color: var(--gold);
+        text-transform: uppercase;
+        width: 36%;
+        white-space: nowrap;
+      }
+
+      /* DROP ZONE */
+      .drop-zone {
+        border: 2px dashed rgba(201, 168, 76, 0.3);
+        border-radius: 5px;
+        padding: 24px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 10px;
+        position: relative;
+      }
+      .drop-zone:hover,
+      .drop-zone.drag-over {
+        border-color: var(--gold);
+        background: rgba(201, 168, 76, 0.05);
+      }
+      .drop-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+      .drop-zone-icon {
+        font-size: 28px;
+        margin-bottom: 6px;
+        display: block;
+      }
+      .drop-zone-label {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        color: rgba(201, 168, 76, 0.7);
+        text-transform: uppercase;
+      }
+      .drop-zone-sub {
+        font-size: 13px;
+        color: var(--dim);
+        margin-top: 4px;
+      }
+      .file-attached {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border: 1px solid rgba(100, 160, 255, 0.3);
+        border-radius: 4px;
+        background: rgba(100, 160, 255, 0.06);
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      .file-attached .fa-name {
+        color: var(--light);
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .file-attached .fa-meta {
+        color: rgba(100, 160, 255, 0.7);
+        font-size: 12px;
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.06em;
+      }
+
+      /* NAICS REF */
+      .naics-ref {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .naics-item {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(201, 168, 76, 0.15);
+        border-radius: 3px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .naics-item:hover {
+        border-color: var(--gold);
+        background: rgba(201, 168, 76, 0.06);
+      }
+      .ni-code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        color: var(--gold);
+      }
+      .ni-name {
+        font-size: 13px;
+        color: var(--dim);
+      }
+
+      /* TOAST */
+      #toastWrap {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .toast {
+        background: rgba(125, 255, 154, 0.2);
+        border: 1px solid var(--green);
+        color: var(--green);
+        padding: 12px 18px;
+        border-radius: 4px;
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        animation: slideIn 0.3s ease-out;
+      }
+      .toast.error {
+        background: rgba(255, 80, 80, 0.15);
+        border-color: rgba(255, 80, 80, 0.4);
+        color: var(--danger);
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(300px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      /* STEP FOOTER */
+      .step-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      /* MISC */
+      .hidden {
+        display: none;
+      }
+      .success-text {
+        color: var(--green);
+      }
+      .warn-text {
+        color: var(--danger);
+      }
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid rgba(201, 168, 76, 0.12);
+        margin: 16px 0;
+      }
+
+      /* CODE BUTTONS (Monitoring Lanes) */
+      .code-btn {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(201, 168, 76, 0.25);
+        color: var(--light);
+        border-radius: 3px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 4px;
+      }
+      .code-btn:hover {
+        background: rgba(201, 168, 76, 0.15);
+        border-color: rgba(201, 168, 76, 0.5);
+      }
+
+      /* INSTRUCTIONS OVERLAY */
+      .instructions-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.88);
+        backdrop-filter: blur(5px);
+        display: none;
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .instructions-overlay.active {
+        display: flex;
+      }
+      .instructions-modal {
+        background: var(--sheen);
+        border: 2px solid var(--gold);
+        border-radius: 8px;
+        padding: 28px;
+        max-width: 680px;
+        max-height: 75vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 0 40px rgba(201, 168, 76, 0.3);
+      }
+      .instructions-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: transparent;
+        border: none;
+        color: var(--gold);
+        font-size: 28px;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+      }
+      .instructions-close:hover {
+        color: var(--light);
+      }
+      .instructions-modal h2 {
+        color: var(--gold);
+        font-family: "Cinzel", serif;
+        font-size: 22px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 18px;
+        border-bottom: 2px solid var(--gold);
+        padding-bottom: 10px;
+      }
+      .instructions-modal h3 {
+        color: var(--gold);
+        font-family: "Cinzel", serif;
+        font-size: 15px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-top: 18px;
+        margin-bottom: 8px;
+      }
+      .instructions-modal p {
+        color: var(--light);
+        font-size: 14px;
+        line-height: 1.7;
+        margin-bottom: 10px;
+      }
+      .instructions-modal ul {
+        color: var(--light);
+        font-size: 14px;
+        line-height: 1.7;
+        margin-left: 18px;
+        margin-bottom: 10px;
+      }
+      .instructions-modal li {
+        margin-bottom: 6px;
+      }
+
+      @media (max-width: 900px) {
+        .form-grid,
+        .form-grid.three,
+        .ai-field-grid,
+        .naics-ref,
+        .sourcing-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── SOL CRM SIDEBAR ─────────────────────────────── */
+      .app-layout {
+        display: flex;
+        gap: 0;
+        align-items: flex-start;
+      }
+      #mainContent {
+        flex: 1;
+        min-width: 0;
+        transition: all 0.25s ease;
+      }
+      #mainContent.sp-expanded {
+        /* sidebar collapsed — main takes full width */
+      }
+
+      #solSidebar {
+        width: 280px;
+        flex-shrink: 0;
+        margin-left: 16px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        position: sticky;
+        top: 24px;
+        max-height: calc(100vh - 48px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition:
+          width 0.25s ease,
+          opacity 0.25s ease;
+      }
+      #solSidebar.sp-collapsed {
+        width: 32px;
+        overflow: hidden;
+      }
+      #solSidebar.sp-collapsed .sp-sidebar-inner {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .sp-sidebar-toggle {
+        position: absolute;
+        top: 8px;
+        right: 6px;
+        background: transparent;
+        border: none;
+        color: var(--gold);
+        font-size: 12px;
+        cursor: pointer;
+        padding: 4px 6px;
+        z-index: 10;
+        line-height: 1;
+      }
+      .sp-sidebar-inner {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        opacity: 1;
+        transition: opacity 0.2s ease;
+      }
+      .sp-header {
+        padding: 12px 14px 8px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .sp-header-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        padding-right: 24px;
+      }
+      .sp-header-title {
+        font-family: "Cinzel", serif;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      #solPanelCount {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+      .sp-filters {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+      }
+      .sp-filter-btn {
+        font-family: "Cinzel", serif;
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        background: transparent;
+        border: 1px solid rgba(201, 168, 76, 0.25);
+        color: rgba(255, 255, 255, 0.45);
+        padding: 2px 7px;
+        border-radius: 2px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .sp-filter-btn.active,
+      .sp-filter-btn:hover {
+        background: rgba(201, 168, 76, 0.12);
+        border-color: rgba(201, 168, 76, 0.5);
+        color: var(--gold);
+      }
+
+      #solPanelList {
+        overflow-y: auto;
+        flex: 1;
+        padding: 8px;
+      }
+      #solPanelList::-webkit-scrollbar {
+        width: 4px;
+      }
+      #solPanelList::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #solPanelList::-webkit-scrollbar-thumb {
+        background: rgba(201, 168, 76, 0.3);
+        border-radius: 2px;
+      }
+
+      .sol-empty {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.3);
+        text-align: center;
+        padding: 32px 12px;
+        line-height: 1.6;
+      }
+
+      .sol-card {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(201, 168, 76, 0.15);
+        border-radius: 4px;
+        padding: 10px 10px 8px;
+        margin-bottom: 8px;
+        transition: border-color 0.15s;
+      }
+      .sol-card:hover {
+        border-color: rgba(201, 168, 76, 0.35);
+      }
+      .sp-row-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .sp-sol-id {
+        font-family: "Cinzel", serif;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        color: var(--gold);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+      }
+      .sp-status {
+        font-family: "Cinzel", serif;
+        font-size: 8px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 2px;
+        cursor: pointer;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+      }
+      .sp-active {
+        color: #60c0ff;
+        border-color: rgba(96, 192, 255, 0.35);
+        background: rgba(96, 192, 255, 0.08);
+      }
+      .sp-submitted {
+        color: #c9a84c;
+        border-color: rgba(201, 168, 76, 0.35);
+        background: rgba(201, 168, 76, 0.08);
+      }
+      .sp-awarded {
+        color: #5cb85c;
+        border-color: rgba(92, 184, 92, 0.35);
+        background: rgba(92, 184, 92, 0.08);
+      }
+      .sp-noaward {
+        color: #e05555;
+        border-color: rgba(224, 85, 85, 0.35);
+        background: rgba(224, 85, 85, 0.08);
+      }
+      .sp-cancelled {
+        color: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.15);
+        background: transparent;
+      }
+
+      .sp-title {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+        line-height: 1.35;
+        margin-bottom: 3px;
+        word-break: break-word;
+      }
+      .sp-meta {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.38);
+        line-height: 1.4;
+      }
+      .sp-price-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 5px 0 3px;
+      }
+      .sp-rate {
+        font-family: "Cinzel", serif;
+        font-size: 11px;
+        color: var(--gold);
+      }
+      .sp-val {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.65);
+      }
+      .sp-verdict {
+        font-family: "Cinzel", serif;
+        font-size: 8px;
+        letter-spacing: 0.1em;
+        padding: 1px 5px;
+        border-radius: 2px;
+        margin-left: auto;
+      }
+      .sp-go {
+        color: #5cb85c;
+        background: rgba(92, 184, 92, 0.12);
+      }
+      .sp-marginal {
+        color: #f0ad4e;
+        background: rgba(240, 173, 78, 0.12);
+      }
+      .sp-pass {
+        color: #e05555;
+        background: rgba(224, 85, 85, 0.12);
+      }
+
+      .sp-sub {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.35);
+        margin-bottom: 3px;
+      }
+      .sp-last-note {
+        font-size: 10px;
+        color: rgba(201, 168, 76, 0.55);
+        font-style: italic;
+        margin-bottom: 4px;
+        line-height: 1.3;
+        word-break: break-word;
+      }
+
+      .sp-actions {
+        display: flex;
+        gap: 4px;
+        margin-top: 6px;
+        flex-wrap: wrap;
+      }
+      .sp-btn {
+        font-size: 13px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.55);
+        border-radius: 3px;
+        padding: 3px 7px;
+        cursor: pointer;
+        text-decoration: none;
+        line-height: 1;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+      }
+      .sp-btn:hover {
+        background: rgba(201, 168, 76, 0.12);
+        border-color: rgba(201, 168, 76, 0.4);
+        color: var(--gold);
+      }
+      .sp-btn-del:hover {
+        background: rgba(224, 85, 85, 0.12);
+        border-color: rgba(224, 85, 85, 0.4);
+        color: #e05555;
+      }
+      .sp-btn-load:hover {
+        background: rgba(92, 184, 92, 0.12);
+        border-color: rgba(92, 184, 92, 0.4);
+        color: #5cb85c;
+      }
+
+      /* Submit confirm card */
+      #submitConfirmCard {
+        display: none;
+        margin-top: 16px;
+        padding: 16px 20px;
+        background: rgba(92, 184, 92, 0.08);
+        border: 1px solid rgba(92, 184, 92, 0.3);
+        border-radius: 4px;
+      }
+      .sc-title {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        letter-spacing: 0.15em;
+        color: #5cb85c;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+      .sc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 20px;
+      }
+      .sc-row {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .sc-row span {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 11px;
+        display: block;
+      }
+
+      /* ── SOL PANEL LANES ─────────────────────────── */
+      .sp-lane-header {
+        font-family: "Cinzel", serif;
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        padding: 6px 8px 4px;
+        margin: 8px 0 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .sp-lane-header span {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 10px;
+      }
+      .sp-lane-active {
+        color: rgba(96, 192, 255, 0.7);
+      }
+      .sp-lane-active span {
+        background: rgba(96, 192, 255, 0.12);
+        color: #60c0ff;
+      }
+      .sp-lane-decision {
+        color: rgba(240, 173, 78, 0.8);
+      }
+      .sp-lane-decision span {
+        background: rgba(240, 173, 78, 0.12);
+        color: #f0ad4e;
+      }
+
+      /* ── STATUS MENU ─────────────────────────────── */
+      .sp-status-menu {
+        display: flex;
+        gap: 3px;
+        margin: 6px 0 4px;
+        flex-wrap: wrap;
+      }
+      .sp-smbtn {
+        font-family: "Cinzel", serif;
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        padding: 2px 7px;
+        border-radius: 2px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        background: transparent;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .sp-sm-won {
+        color: #5cb85c;
+        border-color: rgba(92, 184, 92, 0.3);
+      }
+      .sp-sm-won:hover {
+        background: rgba(92, 184, 92, 0.15);
+      }
+      .sp-sm-lost {
+        color: #e05555;
+        border-color: rgba(224, 85, 85, 0.3);
+      }
+      .sp-sm-lost:hover {
+        background: rgba(224, 85, 85, 0.15);
+      }
+      .sp-sm-sub {
+        color: #c9a84c;
+        border-color: rgba(201, 168, 76, 0.3);
+      }
+      .sp-sm-sub:hover {
+        background: rgba(201, 168, 76, 0.1);
+      }
+      .sp-sm-cancel {
+        color: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+      .sp-sm-cancel:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      /* ── SEARCH ──────────────────────────────────── */
+      .sp-search-wrap {
+        padding: 8px 10px 6px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      #spSearchInput {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(201, 168, 76, 0.2);
+        border-radius: 3px;
+        color: rgba(255, 255, 255, 0.8);
+        font-family: "Cormorant Garamond", serif;
+        font-size: 12px;
+        padding: 5px 8px;
+        outline: none;
+        box-sizing: border-box;
+      }
+      #spSearchInput:focus {
+        border-color: rgba(201, 168, 76, 0.5);
+      }
+      #spSearchInput::placeholder {
+        color: rgba(255, 255, 255, 0.25);
+        font-style: italic;
+      }
+      #spSearchResults {
+        padding: 0 8px 4px;
+      }
+      .sp-search-result {
+        background: rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(201, 168, 76, 0.1);
+        border-radius: 3px;
+        padding: 7px 9px;
+        margin-bottom: 5px;
+      }
+      .sp-search-loading,
+      .sp-search-empty {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+        text-align: center;
+        padding: 12px 0;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- HEADER -->
+      <header>
+        <img
+          src="./ifl_trans.png"
+          alt="IFL Logo"
+          onerror="this.style.display = 'none'"
+        />
+        <div class="header-text">
+          <div class="eyebrow">The House of Kel LLC · CAGE 152U4 · SDVOSB</div>
+          <h1 class="gold-text">Service Contract Intelligence Engine</h1>
+          <div class="subtitle">
+            AI-powered · SAM.gov &amp; ESBD · Auto-sourcing · Auto-pricing ·
+            Auto-proposal
+          </div>
+        </div>
+        <button
+          onclick="openHowToUse()"
+          style="
+            padding: 10px 16px;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-family: &quot;Cinzel&quot;, serif;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 3px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.2s;
+          "
+          onmouseover="this.style.background = 'rgba(201,168,76,.1)'"
+          onmouseout="this.style.background = 'transparent'"
+        >
+          ? How to Use
+        </button>
+      </header>
+
+      <!-- CHEVRON NAV -->
+      <nav class="chevron-nav" id="chevronNav"></nav>
+
+      <!-- TWO-COLUMN: main workflow + sol sidebar -->
+      <div class="app-layout">
+        <div id="mainContent">
+          <!-- ═══════════════ STEP 1: DISCOVERY ═══════════════ -->
+          <div class="step-container" id="step-discovery">
+            <div class="panel">
+              <div class="step-title">Step 1 — Contract Discovery</div>
+              <div class="step-desc">
+                Paste contract listings from SAM.gov or ESBD. One per line. AI
+                will triage each one — in-lane or not — so you only spend time
+                on contracts worth bidding.
+              </div>
+
+              <div class="section-label">Paste Contract Listings</div>
+              <div
+                class="step-desc"
+                style="margin-bottom: 10px; font-size: 13px"
+              >
+                Format:
+                <span class="mono" style="color: var(--gold)"
+                  >Contract Title | SOL# | Due Date | Agency | Location</span
+                >
+                — or just paste whatever you copy from the browser. AI figures
+                it out.
+              </div>
+              <textarea
+                id="discoveryPaste"
+                style="min-height: 130px; font-size: 14px"
+                placeholder="Janitorial Services Fort Cavazos | W91247-25-R-0088 | 2025-08-15 | Army | Killeen TX&#10;HVAC Maintenance | VA25-123 | 2025-09-01 | VA NCO 17 | Temple TX&#10;Custodial Services UT Austin | 721-26080 | 2025-07-30 | UT System | Austin TX&#10;...paste as many as you have"
+              ></textarea>
+              <div class="btn-row">
+                <button id="triageBtn" onclick="triageAll()">
+                  ⚡ AI Triage All
+                </button>
+                <button class="secondary" onclick="clearDiscovery()">
+                  Clear
+                </button>
+              </div>
+              <div id="triageThinking" class="ai-thinking hidden">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <span>AI analyzing contracts against your lane...</span>
+              </div>
+            </div>
+
+            <div id="discoveryList"></div>
+
+            <!-- SAM.gov PULL PANEL -->
+            <div class="panel">
+              <div class="step-title">Pull from SAM.gov</div>
+              <div class="step-desc">
+                Fetch live opportunities direct from SAM.gov. Requires
+                <span class="mono" style="color: var(--gold)">SAM_API_KEY</span>
+                in your backend <span class="mono">.env</span>. Get your free
+                key at
+                <a
+                  href="https://sam.gov/profile/details"
+                  target="_blank"
+                  style="color: var(--gold)"
+                  >sam.gov/profile/details</a
+                >.
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Keywords</label>
+                  <input
+                    id="samKeyword"
+                    value="janitorial OR landscaping OR painting"
+                    placeholder="e.g. janitorial OR custodial"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>NAICS (optional)</label>
+                  <input id="samNaics" placeholder="e.g. 561720" class="mono" />
+                </div>
+                <div class="form-group">
+                  <label>State</label>
+                  <input
+                    id="samState"
+                    value="TX"
+                    placeholder="TX"
+                    style="width: 80px"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Set-Aside</label>
+                  <select id="samSetAside">
+                    <option value="SDVOSB">SDVOSB</option>
+                    <option value="VOSB">VOSB</option>
+                    <option value="SB">Small Business</option>
+                    <option value="8a">8(a)</option>
+                    <option value="WOSB">WOSB</option>
+                    <option value="">Any</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Limit</label>
+                  <select id="samLimit">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button
+                  id="samPullBtn"
+                  class="ai-btn"
+                  onclick="pullSamOpportunities()"
+                >
+                  ⬇ Pull SAM.gov Opportunities
+                </button>
+                <button class="secondary" onclick="triageAllSam()">
+                  ⚡ Triage SAM Items
+                </button>
+              </div>
+              <div id="samThinking" class="ai-thinking hidden">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <span>Fetching from SAM.gov API...</span>
+              </div>
+              <div
+                id="samResultCount"
+                style="font-size: 13px; color: var(--dim); margin-top: 8px"
+              ></div>
+            </div>
+
+            <!-- NAICS Quick Reference -->
+            <div class="panel">
+              <div class="step-title">Your NAICS Codes — Quick Copy</div>
+              <div class="step-desc">
+                Click any code to copy it for SAM.gov search filters.
+              </div>
+              <div class="naics-ref">
+                <div class="naics-item" onclick="copyCode('561720')">
+                  <span class="ni-code">561720</span
+                  ><span class="ni-name">Janitorial / Custodial Services</span>
+                </div>
+                <div class="naics-item" onclick="copyCode('238320')">
+                  <span class="ni-code">238320</span
+                  ><span class="ni-name">Painting &amp; Wall Covering</span>
+                </div>
+                <div class="naics-item" onclick="copyCode('561320')">
+                  <span class="ni-code">561320</span
+                  ><span class="ni-name">Temporary Staffing</span>
+                </div>
+                <div class="naics-item" onclick="copyCode('561730')">
+                  <span class="ni-code">561730</span
+                  ><span class="ni-name">Landscaping Services</span>
+                </div>
+                <div class="naics-item" onclick="copyCode('238910')">
+                  <span class="ni-code">238910</span
+                  ><span class="ni-name">Site Preparation</span>
+                </div>
+                <div class="naics-item" onclick="copyCode('493110')">
+                  <span class="ni-code">493110</span
+                  ><span class="ni-name">Warehousing &amp; Storage</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="step-footer">
+              <span style="font-size: 13px; color: var(--dim)"
+                >Select a contract above, then continue</span
+              >
+              <button onclick="goToIntake()">Proceed to Intake →</button>
+            </div>
+          </div>
+
+          <!-- ═══════════════ STEP 2: INTAKE + MANUAL EXTRACTION ═══════════════ -->
+          <div class="step-container" id="step-intake">
+            <div class="panel">
+              <div class="step-title">
+                Step 2 — Document Extraction Workflow
+              </div>
+              <div class="step-desc">
+                Upload SOW and WD PDFs. Copy the extraction prompt. Send both
+                PDFs to Claude. Paste the response back into this form.
+              </div>
+
+              <div
+                style="
+                  background: rgba(100, 160, 255, 0.08);
+                  border: 1px solid rgba(100, 160, 255, 0.25);
+                  border-radius: 5px;
+                  padding: 14px;
+                  margin-bottom: 16px;
+                "
+              >
+                <div
+                  style="
+                    font-family: &quot;Cinzel&quot;, serif;
+                    font-size: 12px;
+                    letter-spacing: 0.1em;
+                    color: rgba(100, 160, 255, 0.8);
+                    text-transform: uppercase;
+                    margin-bottom: 8px;
+                  "
+                >
+                  Workflow
+                </div>
+                <ol
+                  style="
+                    font-size: 14px;
+                    color: var(--light);
+                    margin-left: 18px;
+                    line-height: 1.8;
+                  "
+                >
+                  <li>Drop your SOW and WD PDFs below (reference only)</li>
+                  <li>Hit <strong>Copy Extraction Prompt</strong></li>
+                  <li>
+                    Paste the prompt + the 2 PDFs into a new Claude conversation
+                  </li>
+                  <li>Copy Claude's JSON response back here</li>
+                  <li>Paste it into the text box below and hit Extract</li>
+                </ol>
+              </div>
+
+              <div class="form-grid">
+                <div>
+                  <div class="section-label">1. SOW / RFP PDF (reference)</div>
+                  <div class="drop-zone" id="sowDrop">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      id="sowFile"
+                      onchange="handleSowFile(this.files[0])"
+                    />
+                    <span class="drop-zone-icon">📄</span>
+                    <div class="drop-zone-label">Drop Here</div>
+                    <div class="drop-zone-sub">(for reference only)</div>
+                  </div>
+                  <div id="sowStatus"></div>
+                </div>
+                <div>
+                  <div class="section-label">
+                    2. Wage Determination PDF (reference)
+                  </div>
+                  <div class="drop-zone" id="wdDrop">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      id="wdFile"
+                      onchange="handleWdFile(this.files[0])"
+                    />
+                    <span class="drop-zone-icon">💰</span>
+                    <div class="drop-zone-label">Drop Here</div>
+                    <div class="drop-zone-sub">(for reference only)</div>
+                  </div>
+                  <div id="wdStatus"></div>
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button
+                  class="ai-btn"
+                  onclick="copyExtractionPrompt()"
+                  style="flex: 1"
+                >
+                  📋 Copy Extraction Prompt
+                </button>
+              </div>
+            </div>
+
+            <!-- Paste extraction response -->
+            <div class="panel">
+              <div class="step-title">Paste Claude's Response</div>
+              <div class="step-desc">
+                After Claude sends you the extracted JSON, paste it here.
+              </div>
+              <textarea
+                id="extractionResponse"
+                style="
+                  min-height: 200px;
+                  font-family: &quot;JetBrains Mono&quot;, monospace;
+                  font-size: 13px;
+                "
+                placeholder='Paste the JSON response from Claude here, e.g. { "solId": "...", "agency": "...", ... }'
+              ></textarea>
+              <div class="btn-row">
+                <button onclick="parseExtraction()">
+                  Extract → Auto-Fill Form
+                </button>
+                <button
+                  class="secondary"
+                  onclick="
+                    document.getElementById('extractionResponse').value = ''
+                  "
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <!-- Auto-filled fields from extraction -->
+            <div class="panel" id="intakeFieldsPanel" style="display: none">
+              <div class="step-title">Contract Data (Auto-Filled)</div>
+              <div class="step-desc">
+                Review and edit any field. Hit Confirm when ready.
+              </div>
+
+              <div class="ai-field-grid">
+                <div class="ai-field">
+                  <div class="af-label">Solicitation ID</div>
+                  <input
+                    class="af-value edit mono"
+                    id="afSolId"
+                    placeholder="e.g. W91247-25-R-0088"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">Agency / Buyer</div>
+                  <input
+                    class="af-value edit"
+                    id="afAgency"
+                    placeholder="e.g. Army Corps of Engineers"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">Due Date</div>
+                  <input
+                    class="af-value edit mono"
+                    id="afDueDate"
+                    placeholder="e.g. 2025-08-15 14:00 CT"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">Place of Performance</div>
+                  <input
+                    class="af-value edit"
+                    id="afLocation"
+                    placeholder="e.g. Fort Cavazos, Killeen TX"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">NAICS Code</div>
+                  <input
+                    class="af-value edit mono"
+                    id="afNaics"
+                    placeholder="e.g. 561720"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">Set-Aside</div>
+                  <input
+                    class="af-value edit"
+                    id="afSetAside"
+                    placeholder="e.g. SDVOSB / Total Small Business"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">Contract Period</div>
+                  <input
+                    class="af-value edit"
+                    id="afPeriod"
+                    placeholder="e.g. 1 Base Year + 4 Option Years"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">WD Number</div>
+                  <input
+                    class="af-value edit mono"
+                    id="afWdNum"
+                    placeholder="e.g. 2015-5650 Rev 22"
+                  />
+                </div>
+                <div class="ai-field">
+                  <div class="af-label">Evaluation Type</div>
+                  <select class="af-value edit" id="afEvalType">
+                    <option value="LPTA">
+                      LPTA — Lowest Price Technically Acceptable
+                    </option>
+                    <option value="Best Value">Best Value Tradeoff</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="margin-top: 14px">
+                <div class="section-label">Scope of Work Summary</div>
+                <textarea
+                  id="afScope"
+                  style="min-height: 80px"
+                  placeholder="AI summary of what work is required..."
+                ></textarea>
+              </div>
+
+              <div style="margin-top: 12px">
+                <div class="section-label">Labor Categories &amp; Hours</div>
+                <textarea
+                  id="afLaborCats"
+                  style="
+                    min-height: 70px;
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                    font-size: 13px;
+                  "
+                  placeholder="e.g. Janitor (FT) × 4 workers × 2,080 hrs/yr each&#10;Working Supervisor × 1 × 2,080 hrs/yr"
+                ></textarea>
+              </div>
+
+              <div style="margin-top: 12px">
+                <div class="section-label">Wage Determination Rates</div>
+                <div class="form-grid three">
+                  <div class="form-group">
+                    <label>Job Title (Primary)</label>
+                    <input id="afJobTitle" placeholder="e.g. Janitor" />
+                  </div>
+                  <div class="form-group">
+                    <label>Base Wage / hr</label>
+                    <input
+                      id="afBaseWage"
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 22.00"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Fringe / H&amp;W / hr</label>
+                    <input
+                      id="afFringe"
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 4.98"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top: 12px">
+                <div class="section-label">Risk Flags</div>
+                <div id="afRiskFlags" class="risk-flags"></div>
+                <textarea
+                  id="afRiskNotes"
+                  style="min-height: 60px; margin-top: 8px"
+                  placeholder="AI-identified risks, special requirements, flags..."
+                ></textarea>
+              </div>
+
+              <!-- AMENDMENTS TRACKER -->
+              <div style="margin-top: 14px">
+                <div class="section-label">Amendments</div>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px">
+                  <input
+                    id="amendInput"
+                    placeholder="e.g. A0001"
+                    style="
+                      width: 140px;
+                      font-family: &quot;JetBrains Mono&quot;, monospace;
+                      font-size: 14px;
+                    "
+                    onkeydown="if (event.key === 'Enter') addAmendment();"
+                  />
+                  <button
+                    class="secondary"
+                    style="padding: 6px 14px"
+                    onclick="addAmendment()"
+                  >
+                    + Add
+                  </button>
+                </div>
+                <div
+                  id="amendList"
+                  style="display: flex; flex-wrap: wrap; gap: 6px"
+                >
+                  <span style="color: var(--dim); font-size: 13px"
+                    >None logged</span
+                  >
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button onclick="confirmIntake()">
+                  ✓ Confirm &amp; Continue →
+                </button>
+              </div>
+            </div>
+
+            <!-- COMPLIANCE CHECKLIST PANEL -->
+            <div class="panel" id="compliancePanel">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 12px;
+                "
+              >
+                <div class="step-title" style="margin: 0">
+                  Compliance Checklist
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <span
+                    id="complianceReq"
+                    style="font-size: 13px; color: var(--dim)"
+                    >0/0 required</span
+                  >
+                  <span
+                    id="complianceScore"
+                    style="
+                      font-family: &quot;JetBrains Mono&quot;, monospace;
+                      font-size: 18px;
+                      color: var(--green);
+                    "
+                    >0%</span
+                  >
+                </div>
+              </div>
+              <div
+                style="
+                  height: 6px;
+                  background: rgba(255, 255, 255, 0.1);
+                  border-radius: 3px;
+                  margin-bottom: 18px;
+                  overflow: hidden;
+                "
+              >
+                <div
+                  id="complianceBar"
+                  style="
+                    height: 100%;
+                    width: 0%;
+                    background: var(--green);
+                    border-radius: 3px;
+                    transition:
+                      width 0.4s,
+                      background 0.4s;
+                  "
+                ></div>
+              </div>
+              <div id="complianceChecklist"></div>
+            </div>
+
+            <div class="step-footer">
+              <button class="secondary" onclick="goToStep(0)">← Back</button>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- ═══════════════ STEP 3: SOURCING ═══════════════ -->
+          <div class="step-container" id="step-sourcing">
+            <div class="panel">
+              <div class="step-title">Step 3 — Subcontractor Sourcing</div>
+              <div class="step-desc">
+                AI finds local staffing agencies and subs near the contract
+                location — small firms first. Hit Find Subs to run. Or enter
+                your own sub below.
+              </div>
+              <div class="btn-row">
+                <button
+                  id="sourcingRunBtn"
+                  class="ai-btn"
+                  onclick="runSourcing()"
+                >
+                  ⚡ Find Subs Near Contract Location
+                </button>
+                <button class="secondary" onclick="refreshSourcing()">
+                  ↺ Refresh
+                </button>
+              </div>
+              <div id="sourcingThinking" class="ai-thinking hidden">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <span>Finding local sourcing candidates...</span>
+              </div>
+              <div id="sourcingGrid" class="sourcing-grid"></div>
+              <div
+                id="noSourcingYet"
+                style="
+                  padding: 16px 0;
+                  color: var(--dim);
+                  font-size: 15px;
+                  display: none;
+                "
+              >
+                Complete Intake first, then hit Find Subs.
+              </div>
+            </div>
+
+            <!-- Manual sub entry -->
+            <div class="panel">
+              <div class="step-title">Manual Override — Enter Sub Directly</div>
+
+              <!-- Paste Parser -->
+              <div
+                style="
+                  background: rgba(100, 160, 255, 0.06);
+                  border: 1px solid rgba(100, 160, 255, 0.2);
+                  border-radius: 4px;
+                  padding: 14px;
+                  margin-bottom: 16px;
+                "
+              >
+                <div
+                  class="section-label"
+                  style="color: rgba(100, 160, 255, 0.7); margin-bottom: 6px"
+                >
+                  Paste Sub Info — Auto-Fill
+                </div>
+                <div
+                  style="font-size: 13px; color: var(--dim); margin-bottom: 8px"
+                >
+                  Paste labeled format (Name: / Type: / Location: / Bill Rate: /
+                  Notes:) or pipe-delimited. Hit Parse to fill fields below.
+                </div>
+                <textarea
+                  id="subPasteInput"
+                  style="
+                    min-height: 100px;
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                    font-size: 13px;
+                  "
+                  placeholder="Name: Gomez Grounds Management&#10;Type: Landscaping Subcontractor&#10;Location: San Antonio, TX&#10;Bill Rate: 42.00&#10;Notes: Local commercial landscaping company..."
+                ></textarea>
+                <div class="btn-row" style="margin-top: 10px">
+                  <button
+                    onclick="parseSubPaste()"
+                    class="ai-btn"
+                    style="flex: 1"
+                  >
+                    → Parse &amp; Auto-Fill
+                  </button>
+                  <button
+                    class="secondary"
+                    onclick="
+                      document.getElementById('subPasteInput').value = ''
+                    "
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Company Name</label>
+                  <input
+                    id="manualSubName"
+                    placeholder="Staffing agency or subcontractor name"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Contact Name</label>
+                  <input
+                    id="manualSubContact"
+                    placeholder="e.g. Maria Gonzalez"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Phone</label>
+                  <input id="manualSubPhone" placeholder="(254) 555-0000" />
+                </div>
+                <div class="form-group">
+                  <label>Email</label>
+                  <input
+                    id="manualSubEmail"
+                    placeholder="contact@staffingco.com"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Their Bill Rate / hr ($)</label>
+                  <input
+                    id="manualBillRate"
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 36.00"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Notes</label>
+                  <input
+                    id="manualSubNotes"
+                    placeholder="SCA experience, location, etc."
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Years in Business</label>
+                  <input
+                    id="manualSubYears"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 5"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Gov Contracts Completed</label>
+                  <input
+                    id="manualSubGovCt"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 3"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Similar Contracts</label>
+                  <input
+                    id="manualSubSimilar"
+                    placeholder="e.g. Janitorial at VA clinic 2023"
+                  />
+                </div>
+                <div class="form-group" style="align-self: end">
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      cursor: pointer;
+                    "
+                  >
+                    <input
+                      type="checkbox"
+                      id="manualSubGovExp"
+                      style="
+                        accent-color: var(--green);
+                        width: 16px;
+                        height: 16px;
+                      "
+                    />
+                    Government Experience
+                  </label>
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      margin-top: 8px;
+                      cursor: pointer;
+                    "
+                  >
+                    <input
+                      type="checkbox"
+                      id="manualSubIsBackup"
+                      style="
+                        accent-color: var(--gold);
+                        width: 16px;
+                        height: 16px;
+                      "
+                    />
+                    Save as Backup Sub (not primary)
+                  </label>
+                </div>
+              </div>
+              <div class="btn-row">
+                <button onclick="lockManualSub()">Lock This Sub →</button>
+              </div>
+            </div>
+
+            <!-- Locked sub display -->
+            <div class="panel hidden" id="lockedSubPanel">
+              <div class="step-title" style="color: var(--green)">
+                ✓ Subcontractor Locked
+              </div>
+              <div
+                id="backupSubWarning"
+                style="
+                  display: none;
+                  background: rgba(255, 154, 154, 0.08);
+                  border: 1px solid rgba(255, 154, 154, 0.3);
+                  border-radius: 4px;
+                  padding: 10px 14px;
+                  margin-bottom: 12px;
+                  font-size: 13px;
+                  color: var(--danger);
+                "
+              >
+                ⚠ No backup sub set — add a backup to strengthen your proposal.
+                Use any card above or manual entry with "Save as Backup"
+                checked.
+              </div>
+              <table class="summary-table" id="lockedSubTable"></table>
+              <div class="btn-row">
+                <button onclick="nextStep()">Continue to Pricing →</button>
+                <button class="secondary" onclick="clearLockedSub()">
+                  Change Sub
+                </button>
+                <button class="secondary" onclick="generateSubPacket()">
+                  📋 Sub Onboarding Packet
+                </button>
+              </div>
+            </div>
+
+            <div class="step-footer">
+              <button class="secondary" onclick="goToStep(1)">← Back</button>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- ═══════════════ STEP 4: PRICING ═══════════════ -->
+          <div class="step-container" id="step-pricing">
+            <div class="panel">
+              <div class="step-title">Step 4 — Bid Pricing Engine</div>
+              <div class="step-desc">
+                Wage floor and COGS are pre-loaded from your documents. Adjust
+                overhead and margin targets, then run the model.
+              </div>
+
+              <div class="form-grid three">
+                <div class="form-group">
+                  <label>Sub Bill Rate / hr (COGS)</label>
+                  <input
+                    id="pBillRate"
+                    type="number"
+                    step="0.01"
+                    placeholder="Auto-loaded from Sourcing"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>WD Floor / hr</label>
+                  <input
+                    id="pWageFloor"
+                    type="number"
+                    step="0.01"
+                    placeholder="Auto-loaded from WD"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Total Hours (Contract)</label>
+                  <input
+                    id="pHours"
+                    type="number"
+                    placeholder="e.g. 2080"
+                    value="2080"
+                  />
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Overhead / G&A (%)</label>
+                  <input id="pOverhead" type="number" value="12" step="0.5" />
+                </div>
+                <div class="form-group">
+                  <label>Target Gross Margin (%)</label>
+                  <input id="pMargin" type="number" value="20" step="0.5" />
+                </div>
+                <div class="form-group">
+                  <label>Evaluation Type</label>
+                  <select id="pEvalType">
+                    <option value="LPTA">
+                      LPTA — Lowest Price Technically Acceptable
+                    </option>
+                    <option value="Best Value">Best Value Tradeoff</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Pricing Strategy</label>
+                  <select id="pStrategy">
+                    <option value="Aggressive">
+                      Aggressive — win at thin margin
+                    </option>
+                    <option value="Balanced" selected>
+                      Balanced — competitive mid-range
+                    </option>
+                    <option value="Safe">Safe — protect margin</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Competitor Low ($/hr) — from USASpending</label>
+                  <input
+                    id="pCompLow"
+                    type="number"
+                    step="0.01"
+                    placeholder="Optional"
+                  />
+                </div>
+                <div class="form-group">
+                  <label>Competitor High ($/hr) — from USASpending</label>
+                  <input
+                    id="pCompHigh"
+                    type="number"
+                    step="0.01"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button onclick="calcPricing()">Calculate →</button>
+              </div>
+
+              <div class="price-result" id="priceResult">
+                <div class="price-row">
+                  <span class="price-label">Sub Bill Rate (COGS)</span
+                  ><span class="price-val" id="prCogs">—</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Overhead Added</span
+                  ><span class="price-val" id="prOh">—</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Loaded Cost</span
+                  ><span class="price-val" id="prLoaded">—</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">WD Floor Check</span
+                  ><span class="price-val" id="prFloorCheck">—</span>
+                </div>
+                <div
+                  class="price-row"
+                  style="
+                    border-top: 1px solid rgba(201, 168, 76, 0.3);
+                    margin-top: 8px;
+                  "
+                >
+                  <span class="price-label">Your Rate to Government</span>
+                  <span class="price-val gold" id="prYourRate">—</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Gross Profit / hr</span
+                  ><span class="price-val green" id="prGP">—</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Gross Margin %</span
+                  ><span class="price-val" id="prMarginPct">—</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Total Contract Value</span
+                  ><span class="price-val" id="prTotal">—</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Net to Owner (est.)</span
+                  ><span class="price-val green" id="prNet">—</span>
+                </div>
+                <div id="prVerdict" class="go-nogo" style="display: none"></div>
+
+                <!-- STRATEGY BANDS -->
+                <div
+                  style="
+                    margin-top: 16px;
+                    padding-top: 14px;
+                    border-top: 1px solid rgba(201, 168, 76, 0.2);
+                  "
+                >
+                  <div
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 10px;
+                      letter-spacing: 0.12em;
+                      text-transform: uppercase;
+                      color: var(--gold);
+                      margin-bottom: 10px;
+                    "
+                  >
+                    Win Positioning
+                  </div>
+                  <div class="price-row">
+                    <span class="price-label">Floor Price (absolute min)</span
+                    ><span
+                      class="price-val"
+                      id="prFloor"
+                      style="color: var(--danger)"
+                      >—</span
+                    >
+                  </div>
+                  <div class="price-row">
+                    <span class="price-label">Aggressive (10% margin)</span
+                    ><span class="price-val" id="prAggr">—</span>
+                  </div>
+                  <div class="price-row">
+                    <span class="price-label">Balanced (18% margin)</span
+                    ><span class="price-val" id="prBal">—</span>
+                  </div>
+                  <div class="price-row">
+                    <span class="price-label">Safe (25% margin)</span
+                    ><span class="price-val" id="prSafe">—</span>
+                  </div>
+                  <div
+                    class="price-row"
+                    style="
+                      margin-top: 6px;
+                      border-top: 1px solid rgba(201, 168, 76, 0.3);
+                    "
+                  >
+                    <span class="price-label">TARGET WIN PRICE</span>
+                    <span
+                      class="price-val"
+                      id="prTarget"
+                      style="color: var(--green); font-size: 18px"
+                      >—</span
+                    >
+                  </div>
+                  <div
+                    id="prStratNote"
+                    style="font-size: 13px; color: var(--dim); margin-top: 6px"
+                  ></div>
+                  <div
+                    id="prCompNote"
+                    style="font-size: 13px; margin-top: 4px"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel hidden" id="pricingConfirmedPanel">
+              <div class="step-title" style="color: var(--green)">
+                ✓ Pricing Locked
+              </div>
+              <div
+                id="pricingConfirmedSummary"
+                style="font-size: 15px; color: var(--dim)"
+              ></div>
+              <div class="btn-row">
+                <button onclick="nextStep()">Build Proposal →</button
+                ><button
+                  class="secondary"
+                  onclick="
+                    document
+                      .getElementById('pricingConfirmedPanel')
+                      .classList.add('hidden')
+                  "
+                >
+                  Adjust
+                </button>
+              </div>
+            </div>
+
+            <div class="btn-row" id="confirmPricingBtn" style="display: none">
+              <button onclick="confirmPricing()">✓ Lock Pricing →</button>
+            </div>
+
+            <!-- USASpending Past Award Lookup -->
+            <div class="panel" style="margin-top: 14px">
+              <div class="step-title">Past Award Lookup — USASpending.gov</div>
+              <div class="step-desc">
+                Pulls historical contract awards for your NAICS + state to
+                benchmark your competitor range. Auto-fills Low/High in pricing.
+              </div>
+              <div class="btn-row">
+                <button
+                  id="usaLookupBtn"
+                  class="secondary"
+                  onclick="lookupPastAwards()"
+                >
+                  🔍 Look Up Past Awards
+                </button>
+              </div>
+              <div id="usaThinking" class="ai-thinking hidden">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <span>Querying USASpending.gov...</span>
+              </div>
+              <div id="usaResultPanel" style="margin-top: 12px"></div>
+            </div>
+
+            <div class="step-footer">
+              <button class="secondary" onclick="goToStep(2)">← Back</button>
+              <span></span>
+            </div>
+          </div>
+          <div class="step-container" id="step-proposal">
+            <!-- GENERATE — shown first -->
+            <div class="panel ai-panel">
+              <div class="ai-badge">⚡ AI-Powered</div>
+              <div class="step-title">Generate Response Document</div>
+              <div class="step-desc">
+                AI builds your full government response document from all data
+                collected — scope, pricing, sub, wage compliance, certs, past
+                performance.
+              </div>
+              <div class="btn-row">
+                <button
+                  id="proposalGenBtn"
+                  class="ai-btn"
+                  style="flex: 1"
+                  onclick="generateProposal()"
+                >
+                  ⚡ Generate Response Document
+                </button>
+                <button
+                  class="secondary"
+                  onclick="toggleManualOverride()"
+                  id="manualToggleBtn"
+                >
+                  ✎ Manual Override
+                </button>
+              </div>
+              <div id="proposalThinking" class="ai-thinking hidden">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <span>Building response document...</span>
+              </div>
+            </div>
+
+            <!-- MANUAL INPUT PANELS — hidden by default -->
+            <div id="manualOverridePanels" style="display: none">
+              <!-- SECTION B — PRICING SCHEDULE -->
+              <div class="panel">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 6px;
+                  "
+                >
+                  <span
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 11px;
+                      letter-spacing: 0.14em;
+                      color: rgba(100, 160, 255, 0.7);
+                      text-transform: uppercase;
+                      background: rgba(100, 160, 255, 0.1);
+                      border: 1px solid rgba(100, 160, 255, 0.25);
+                      padding: 2px 8px;
+                      border-radius: 2px;
+                    "
+                    >Section B</span
+                  >
+                  <div class="step-title" style="margin: 0">
+                    Pricing Schedule
+                  </div>
+                </div>
+                <div class="step-desc">
+                  Your exact CLIN line items and loaded rates. Auto-populated
+                  from pricing step — adjust if the solicitation has specific
+                  CLIN structure.
+                </div>
+                <div class="form-grid three">
+                  <div class="form-group">
+                    <label>CLIN 0001 — Base Year Labor Rate</label>
+                    <input id="pSecBBaseRate" placeholder="e.g. $42.50/hr" />
+                  </div>
+                  <div class="form-group">
+                    <label>Estimated Hours (Base Year)</label>
+                    <input id="pSecBHours" placeholder="e.g. 2,080" />
+                  </div>
+                  <div class="form-group">
+                    <label>Base Year Total</label>
+                    <input id="pSecBTotal" placeholder="e.g. $88,400.00" />
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px">
+                  <label>Option Years (summarize all)</label>
+                  <textarea
+                    id="pSecBOptions"
+                    style="min-height: 70px"
+                    placeholder="Option Year 1: $42.50/hr × 2,080 hrs = $88,400&#10;Option Year 2: $43.77/hr × 2,080 hrs = $91,042&#10;Option Year 3: $45.08/hr × 2,080 hrs = $93,767&#10;Option Year 4: $46.43/hr × 2,080 hrs = $96,574"
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Total Contract Value (All Periods)</label>
+                  <input id="pSecBGrandTotal" placeholder="e.g. $458,183.00" />
+                </div>
+              </div>
+
+              <!-- SECTION C — SOW ACKNOWLEDGMENT -->
+              <div class="panel">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 6px;
+                  "
+                >
+                  <span
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 11px;
+                      letter-spacing: 0.14em;
+                      color: rgba(201, 168, 76, 0.7);
+                      text-transform: uppercase;
+                      background: rgba(201, 168, 76, 0.08);
+                      border: 1px solid rgba(201, 168, 76, 0.25);
+                      padding: 2px 8px;
+                      border-radius: 2px;
+                    "
+                    >Section C</span
+                  >
+                  <div class="step-title" style="margin: 0">
+                    Statement of Work — Technical Approach
+                  </div>
+                </div>
+                <div class="step-desc">
+                  How you will perform the work. Address the SOW task by task.
+                  Be specific — vague responses lose points.
+                </div>
+                <div class="form-group" style="margin-bottom: 12px">
+                  <label>Technical Approach Narrative</label>
+                  <textarea
+                    id="pSecCApproach"
+                    style="min-height: 120px"
+                    placeholder="Describe exactly how you will perform each task in the SOW. Reference their QASP metrics. Include surface prep methods, inspection protocols, reporting cadence, etc."
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Staffing Plan / Workforce Approach</label>
+                  <textarea
+                    id="pSecCStaffing"
+                    style="min-height: 80px"
+                    placeholder="Describe your labor sourcing model, headcount plan, supervision structure, backup/contingency staffing, and how you handle call-outs."
+                  ></textarea>
+                </div>
+              </div>
+
+              <!-- SECTION H/I — KEY PERSONNEL & MANAGEMENT -->
+              <div class="panel">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 6px;
+                  "
+                >
+                  <span
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 11px;
+                      letter-spacing: 0.14em;
+                      color: rgba(201, 168, 76, 0.7);
+                      text-transform: uppercase;
+                      background: rgba(201, 168, 76, 0.08);
+                      border: 1px solid rgba(201, 168, 76, 0.25);
+                      padding: 2px 8px;
+                      border-radius: 2px;
+                    "
+                    >Section H/I</span
+                  >
+                  <div class="step-title" style="margin: 0">
+                    Management Approach &amp; Key Personnel
+                  </div>
+                </div>
+                <div class="step-desc">
+                  Who is accountable. Government wants a named POC and a plan
+                  for quality control.
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Program Manager / POC</label>
+                    <input
+                      id="pSecHPM"
+                      placeholder="Name, title, phone, email"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>On-Site Supervisor</label>
+                    <input
+                      id="pSecHSup"
+                      placeholder="Name or 'To be assigned from subcontractor'"
+                    />
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 12px">
+                  <label>Quality Control Plan</label>
+                  <textarea
+                    id="pSecHQC"
+                    style="min-height: 80px"
+                    placeholder="How you will self-inspect, document, and report performance. How quickly you respond to deficiency notices. How you align to the QASP."
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Subcontractor Management</label>
+                  <textarea
+                    id="pSecHSub"
+                    style="min-height: 70px"
+                    placeholder="Describe your prime-to-sub oversight — how you ensure the sub meets SCA requirements, performance standards, and insurance obligations."
+                  ></textarea>
+                </div>
+              </div>
+
+              <!-- SECTION K — REPS & CERTS -->
+              <div class="panel">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 6px;
+                  "
+                >
+                  <span
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 11px;
+                      letter-spacing: 0.14em;
+                      color: rgba(125, 255, 154, 0.7);
+                      text-transform: uppercase;
+                      background: rgba(125, 255, 154, 0.08);
+                      border: 1px solid rgba(125, 255, 154, 0.25);
+                      padding: 2px 8px;
+                      border-radius: 2px;
+                    "
+                    >Section K</span
+                  >
+                  <div class="step-title" style="margin: 0">
+                    Representations &amp; Certifications
+                  </div>
+                </div>
+                <div class="step-desc">
+                  Standard compliance certifications. These flow from your
+                  SAM.gov registration — confirm each is current.
+                </div>
+                <div style="display: grid; gap: 8px; margin-bottom: 14px">
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      text-transform: none;
+                      font-size: 14px;
+                      letter-spacing: 0;
+                      color: var(--light);
+                      cursor: pointer;
+                    "
+                    ><input
+                      type="checkbox"
+                      id="certSam"
+                      style="width: 16px; height: 16px"
+                    />
+                    SAM.gov registration active — no open exclusions</label
+                  >
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      text-transform: none;
+                      font-size: 14px;
+                      letter-spacing: 0;
+                      color: var(--light);
+                      cursor: pointer;
+                    "
+                    ><input
+                      type="checkbox"
+                      id="certSdvosb"
+                      style="width: 16px; height: 16px"
+                    />
+                    SDVOSB verified — CVE/SBA database current</label
+                  >
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      text-transform: none;
+                      font-size: 14px;
+                      letter-spacing: 0;
+                      color: var(--light);
+                      cursor: pointer;
+                    "
+                    ><input
+                      type="checkbox"
+                      id="certSca"
+                      style="width: 16px; height: 16px"
+                    />
+                    SCA / McNamara-O'Hara Act compliance acknowledged</label
+                  >
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      text-transform: none;
+                      font-size: 14px;
+                      letter-spacing: 0;
+                      color: var(--light);
+                      cursor: pointer;
+                    "
+                    ><input
+                      type="checkbox"
+                      id="certSmall"
+                      style="width: 16px; height: 16px"
+                    />
+                    Small business size standard confirmed for this NAICS</label
+                  >
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      text-transform: none;
+                      font-size: 14px;
+                      letter-spacing: 0;
+                      color: var(--light);
+                      cursor: pointer;
+                    "
+                    ><input
+                      type="checkbox"
+                      id="certEeo"
+                      style="width: 16px; height: 16px"
+                    />
+                    Equal Opportunity employer — FAR 52.222-26</label
+                  >
+                  <label
+                    style="
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      text-transform: none;
+                      font-size: 14px;
+                      letter-spacing: 0;
+                      color: var(--light);
+                      cursor: pointer;
+                    "
+                    ><input
+                      type="checkbox"
+                      id="certDebt"
+                      style="width: 16px; height: 16px"
+                    />
+                    No delinquent federal debt</label
+                  >
+                </div>
+                <div class="form-group">
+                  <label
+                    >Additional Certs / Licenses Required by Solicitation</label
+                  >
+                  <textarea
+                    id="pSecKExtra"
+                    style="min-height: 60px"
+                    placeholder="e.g. General liability $1M/$2M confirmed, Workers comp active, business license current, bonding if required..."
+                  ></textarea>
+                </div>
+              </div>
+
+              <!-- SECTION L — PAST PERFORMANCE -->
+              <div class="panel">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 6px;
+                  "
+                >
+                  <span
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 11px;
+                      letter-spacing: 0.14em;
+                      color: rgba(201, 168, 76, 0.7);
+                      text-transform: uppercase;
+                      background: rgba(201, 168, 76, 0.08);
+                      border: 1px solid rgba(201, 168, 76, 0.25);
+                      padding: 2px 8px;
+                      border-radius: 2px;
+                    "
+                    >Section L</span
+                  >
+                  <div class="step-title" style="margin: 0">
+                    Past Performance
+                  </div>
+                </div>
+                <div class="step-desc">
+                  If you have relevant past performance, list it. If you're
+                  emerging, state it directly — some agencies accept neutral
+                  past performance for new vendors.
+                </div>
+                <div class="form-group" style="margin-bottom: 12px">
+                  <label>Past Performance References (if any)</label>
+                  <textarea
+                    id="pSecLPast"
+                    style="min-height: 80px"
+                    placeholder="Contract #, Agency, Scope, Period, Value, POC contact&#10;— or —&#10;Emerging SDVOSB — no prior federal contracts. Relevant commercial experience: [describe]"
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Relevant Qualifications / Differentiators</label>
+                  <textarea
+                    id="pSecLQual"
+                    style="min-height: 70px"
+                    placeholder="SDVOSB status, local presence near Fort Cavazos, veteran leadership, SCA compliance infrastructure, established sub relationships..."
+                  ></textarea>
+                </div>
+              </div>
+
+              <!-- ADDITIONAL SOLICITATION-SPECIFIC REQUIREMENTS -->
+              <div class="panel">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 6px;
+                  "
+                >
+                  <span
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 11px;
+                      letter-spacing: 0.14em;
+                      color: rgba(255, 154, 154, 0.7);
+                      text-transform: uppercase;
+                      background: rgba(255, 80, 80, 0.08);
+                      border: 1px solid rgba(255, 80, 80, 0.2);
+                      padding: 2px 8px;
+                      border-radius: 2px;
+                    "
+                    >Solicitation-Specific</span
+                  >
+                  <div class="step-title" style="margin: 0">
+                    Special Requirements from This SOW
+                  </div>
+                </div>
+                <div class="step-desc">
+                  Anything the solicitation specifically asked you to address
+                  that doesn't fit the standard sections above.
+                </div>
+                <div class="form-group">
+                  <label>Special Requirements / Additional Narrative</label>
+                  <textarea
+                    id="pSecSpecial"
+                    style="min-height: 100px"
+                    placeholder="Background check requirements, drug testing policy, badging/access procedures, specific equipment, certifications, phase-in plan, transition plan, etc."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+            <!-- /manualOverridePanels -->
+
+            <div class="panel" id="proposalPanel" style="display: none">
+              <div class="step-title">Response Document</div>
+              <div class="btn-row" style="margin-top: 0; margin-bottom: 12px">
+                <button onclick="copyProposal()" class="secondary">
+                  Copy Text
+                </button>
+                <button onclick="downloadProposal()" class="secondary">
+                  Download .txt
+                </button>
+                <button onclick="printProposal()">Print / PDF</button>
+              </div>
+              <div class="proposal-box" id="proposalBox"></div>
+            </div>
+
+            <div class="panel hidden" id="bidSummaryPanel">
+              <div class="step-title">Bid Summary</div>
+              <table class="summary-table" id="bidSummaryTable"></table>
+              <div class="btn-row">
+                <button onclick="nextStep()">Submit / Track →</button>
+              </div>
+            </div>
+
+            <div class="step-footer">
+              <button class="secondary" onclick="goToStep(3)">← Back</button>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- ═══════════════ STEP 6: SUBMIT ═══════════════ -->
+          <div class="step-container" id="step-submit">
+            <!-- WIN SCORE GATE -->
+            <div class="panel" style="margin-bottom: 14px">
+              <div id="winScorePanel"></div>
+            </div>
+
+            <!-- COMPLIANCE STATUS BADGE -->
+            <div
+              style="
+                background: rgba(0, 0, 0, 0.25);
+                border: 1px solid var(--border);
+                border-radius: 5px;
+                padding: 12px 18px;
+                margin-bottom: 14px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <span
+                style="
+                  font-family: &quot;Cinzel&quot;, serif;
+                  font-size: 11px;
+                  letter-spacing: 0.1em;
+                  text-transform: uppercase;
+                  color: var(--gold);
+                "
+                >Compliance Status</span
+              >
+              <span
+                id="submitComplianceBadge"
+                style="
+                  font-family: &quot;JetBrains Mono&quot;, monospace;
+                  font-size: 15px;
+                  color: var(--dim);
+                "
+                >—</span
+              >
+            </div>
+
+            <!-- SUBMISSION PACKAGE -->
+            <div class="panel" style="margin-bottom: 14px">
+              <div class="step-title">Submission Package</div>
+              <div class="step-desc">
+                Upload all files for this solicitation. Files are automatically
+                named and stored in a folder for this SOL.
+              </div>
+
+              <div
+                style="
+                  display: flex;
+                  gap: 10px;
+                  margin-bottom: 14px;
+                  align-items: flex-end;
+                "
+              >
+                <div class="form-group" style="margin: 0; flex: 0 0 180px">
+                  <label>File Category</label>
+                  <select id="pkgFileCategory">
+                    <option value="SOW">SOW</option>
+                    <option value="PWS">PWS</option>
+                    <option value="WD">WD</option>
+                    <option value="RFP">RFP</option>
+                    <option value="RFQ">RFQ</option>
+                    <option value="Amendment">Amendment</option>
+                    <option value="QASP">QASP</option>
+                    <option value="PriceSchedule">Price Schedule</option>
+                    <option value="Other" selected>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    style="
+                      display: block;
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 11px;
+                      letter-spacing: 0.08em;
+                      text-transform: uppercase;
+                      color: var(--gold);
+                      margin-bottom: 6px;
+                    "
+                  >
+                    Upload File
+                  </label>
+                  <input
+                    type="file"
+                    id="pkgFileInput"
+                    accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.csv,.zip"
+                    onchange="uploadPackageFile(this)"
+                    style="font-size: 14px; color: var(--dim)"
+                  />
+                </div>
+              </div>
+
+              <div id="pkgFileList" style="margin-bottom: 14px">
+                <div style="color: var(--dim); font-size: 14px">
+                  Loading files…
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button onclick="downloadPackageZip()">
+                  ⬇ Download ZIP Package
+                </button>
+                <button class="secondary" onclick="loadPackageFiles()">
+                  ↺ Refresh
+                </button>
+              </div>
+            </div>
+
+            <!-- SUBMISSION LOG -->
+            <div class="panel">
+              <div class="step-title">Step 6 — Submit &amp; Track</div>
+              <div class="step-desc">
+                Log submission details. This creates a record in your bid
+                tracker.
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Submitter Name</label>
+                  <input id="submitName" placeholder="Your full name" />
+                </div>
+                <div class="form-group">
+                  <label>Email</label>
+                  <input id="submitEmail" placeholder="your@email.com" />
+                </div>
+                <div class="form-group">
+                  <label>Submission Method</label>
+                  <select id="submitMethod">
+                    <option>SAM.gov Portal</option>
+                    <option>Email to CO</option>
+                    <option>ESBD Portal</option>
+                    <option>Physical Mail</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Notes</label>
+                  <input
+                    id="submitNotes"
+                    placeholder="e.g. CO confirmed receipt, follow up in 2 weeks"
+                  />
+                </div>
+              </div>
+              <div class="btn-row">
+                <button onclick="submitBid()">✓ Log Bid Submission</button>
+                <button class="danger" onclick="resetAll()">
+                  Reset &amp; Start New Bid
+                </button>
+              </div>
+
+              <!-- SUBMIT CONFIRMATION CARD -->
+              <div id="submitConfirmCard">
+                <div class="sc-title">✓ Bid Logged &amp; Tracked</div>
+                <div class="sc-grid">
+                  <div class="sc-row">
+                    <span>Solicitation</span><span id="scSolId">—</span>
+                  </div>
+                  <div class="sc-row">
+                    <span>Agency</span><span id="scAgency">—</span>
+                  </div>
+                  <div class="sc-row">
+                    <span>Subcontractor</span><span id="scSub">—</span>
+                  </div>
+                  <div class="sc-row">
+                    <span>Your Rate</span><span id="scRate">—</span>
+                  </div>
+                  <div class="sc-row">
+                    <span>Contract Value</span><span id="scTotal">—</span>
+                  </div>
+                  <div class="sc-row">
+                    <span>Method</span><span id="scMethod">—</span>
+                  </div>
+                  <div class="sc-row">
+                    <span>Submitted</span><span id="scDate">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step-footer">
+              <button class="secondary" onclick="goToStep(4)">← Back</button>
+              <span></span>
+            </div>
+          </div>
+
+          <!-- ═══════════════ MONITORING LANES — 60/20/20 ═══════════════ -->
+          <div
+            class="panel"
+            style="
+              margin-top: 40px;
+              border-top: 2px solid var(--gold);
+              padding-top: 28px;
+            "
+          >
+            <div class="step-title" style="margin-bottom: 8px">
+              Monitoring Lanes — 60/20/20
+            </div>
+            <div class="step-desc" style="margin-bottom: 16px; font-size: 14px">
+              Copy codes directly into SAM.gov / ESBD search. Collapse/expand
+              each tier.
+            </div>
+
+            <!-- TIER IA -->
+            <div
+              style="
+                border: 1px solid rgba(201, 168, 76, 0.25);
+                border-radius: 5px;
+                margin-bottom: 14px;
+                overflow: hidden;
+              "
+            >
+              <div
+                style="
+                  background: rgba(125, 255, 154, 0.08);
+                  border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+                  padding: 14px;
+                  cursor: pointer;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+                onclick="toggleTier('tier1a')"
+              >
+                <div>
+                  <div
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 13px;
+                      letter-spacing: 0.1em;
+                      color: var(--green);
+                      font-weight: 600;
+                      text-transform: uppercase;
+                    "
+                  >
+                    ● Tier IA — VA Set-Asides (Fort Cavazos · 60% Effort)
+                  </div>
+                  <div
+                    style="font-size: 13px; color: var(--dim); margin-top: 4px"
+                  >
+                    Backyard advantage. SDVOSB preference. 2–4 competitors.
+                    Chronic staffing needs.
+                  </div>
+                  <div
+                    style="
+                      font-size: 12px;
+                      color: rgba(125, 255, 154, 0.6);
+                      margin-top: 2px;
+                    "
+                  >
+                    Margin: 18–25% · Win Rate: 40–50% · Where: SAM.gov → VA NCO
+                    17
+                  </div>
+                </div>
+                <span
+                  id="tier1aIcon"
+                  style="
+                    font-size: 16px;
+                    font-family: &quot;Cinzel&quot;, serif;
+                    color: var(--gold);
+                  "
+                  >▼</span
+                >
+              </div>
+              <div id="tier1aContent" style="padding: 14px; display: none">
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 10px;
+                    font-size: 13px;
+                  "
+                >
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      NAICS
+                    </div>
+                    <div class="code-btn" onclick="copyCode('238320')">
+                      238320 — Painting
+                    </div>
+                    <div class="code-btn" onclick="copyCode('561720')">
+                      561720 — Janitorial
+                    </div>
+                    <div class="code-btn" onclick="copyCode('561730')">
+                      561730 — Landscaping
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      PSC
+                    </div>
+                    <div class="code-btn" onclick="copyCode('5201')">
+                      5201 — Custodial
+                    </div>
+                    <div class="code-btn" onclick="copyCode('Z1QA')">
+                      Z1QA — Maintenance
+                    </div>
+                    <div class="code-btn" onclick="copyCode('5208')">
+                      5208 — Grounds
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      NIGP
+                    </div>
+                    <div class="code-btn" onclick="copyCode('91039')">
+                      91039 — Janitorial
+                    </div>
+                    <div class="code-btn" onclick="copyCode('91066')">
+                      91066 — Painting
+                    </div>
+                    <div class="code-btn" onclick="copyCode('98836')">
+                      98836 — Grounds
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      KEYWORDS
+                    </div>
+                    <div class="code-btn" onclick="copyCode('CUSTODIAL VA')">
+                      CUSTODIAL VA
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('JANITORIAL MILITARY')"
+                    >
+                      JANITORIAL MILITARY
+                    </div>
+                    <div class="code-btn" onclick="copyCode('FORT CAVAZOS')">
+                      FORT CAVAZOS
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TIER IB -->
+            <div
+              style="
+                border: 1px solid rgba(201, 168, 76, 0.25);
+                border-radius: 5px;
+                margin-bottom: 14px;
+                overflow: hidden;
+              "
+            >
+              <div
+                style="
+                  background: rgba(201, 168, 76, 0.08);
+                  border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+                  padding: 14px;
+                  cursor: pointer;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+                onclick="toggleTier('tier1b')"
+              >
+                <div>
+                  <div
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 13px;
+                      letter-spacing: 0.1em;
+                      color: var(--gold);
+                      font-weight: 600;
+                      text-transform: uppercase;
+                    "
+                  >
+                    ● Tier IB — Texas State/Local (ESBD · 20% Effort)
+                  </div>
+                  <div
+                    style="font-size: 13px; color: var(--dim); margin-top: 4px"
+                  >
+                    45% less competition. Texas SDVOSB preference. Faster
+                    payment. Better margins.
+                  </div>
+                  <div
+                    style="
+                      font-size: 12px;
+                      color: rgba(201, 168, 76, 0.6);
+                      margin-top: 2px;
+                    "
+                  >
+                    Margin: 22–28% · Win Rate: 35–45% · Where: ESBD, UT System,
+                    Burke Center
+                  </div>
+                </div>
+                <span
+                  id="tier1bIcon"
+                  style="
+                    font-size: 16px;
+                    font-family: &quot;Cinzel&quot;, serif;
+                    color: var(--gold);
+                  "
+                  >▼</span
+                >
+              </div>
+              <div id="tier1bContent" style="padding: 14px; display: none">
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 10px;
+                    font-size: 13px;
+                  "
+                >
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      NIGP
+                    </div>
+                    <div class="code-btn" onclick="copyCode('910-77')">
+                      910-77 — Janitorial
+                    </div>
+                    <div class="code-btn" onclick="copyCode('910-78')">
+                      910-78 — Grounds Maint
+                    </div>
+                    <div class="code-btn" onclick="copyCode('910-20')">
+                      910-20 — Bldg Maint
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      AGENCIES
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('BURKE CENTER (100BFJS)')"
+                    >
+                      BURKE CENTER
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('UT PICKLE CAMPUS')"
+                    >
+                      UT PICKLE
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('TEXAS A&M SYSTEM')"
+                    >
+                      TEXAS A&M
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      MORE NIGP
+                    </div>
+                    <div class="code-btn" onclick="copyCode('958-40')">
+                      958-40 — Temp Labor
+                    </div>
+                    <div class="code-btn" onclick="copyCode('958-44')">
+                      958-44 — Temp Employment
+                    </div>
+                    <div class="code-btn" onclick="copyCode('91066')">
+                      91066 — Painting
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      KEYWORDS
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('JANITORIAL TEXAS')"
+                    >
+                      JANITORIAL TEXAS
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('CUSTODIAL UNIVERSITY')"
+                    >
+                      CUSTODIAL UNIV
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('RESIDENTIAL HALL')"
+                    >
+                      RESIDENTIAL HALL
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TIER IC -->
+            <div
+              style="
+                border: 1px solid rgba(201, 168, 76, 0.25);
+                border-radius: 5px;
+                overflow: hidden;
+              "
+            >
+              <div
+                style="
+                  background: rgba(100, 160, 255, 0.08);
+                  border-bottom: 1px solid rgba(201, 168, 76, 0.2);
+                  padding: 14px;
+                  cursor: pointer;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+                onclick="toggleTier('tier1c')"
+              >
+                <div>
+                  <div
+                    style="
+                      font-family: &quot;Cinzel&quot;, serif;
+                      font-size: 13px;
+                      letter-spacing: 0.1em;
+                      color: #90c8ff;
+                      font-weight: 600;
+                      text-transform: uppercase;
+                    "
+                  >
+                    ● Tier IC — Velocity Lane (Micro-Awards · 20% Effort)
+                  </div>
+                  <div
+                    style="font-size: 13px; color: var(--dim); margin-top: 4px"
+                  >
+                    Fast awards ($50–25K). Build CPARS. Ignored by big
+                    contractors. 25–50% margins.
+                  </div>
+                  <div
+                    style="
+                      font-size: 12px;
+                      color: rgba(100, 160, 255, 0.6);
+                      margin-top: 2px;
+                    "
+                  >
+                    Margin: 30–50% · Win Rate: 60–80% · Where: GSA schedules,
+                    UMHB, UT Pickle
+                  </div>
+                </div>
+                <span
+                  id="tier1cIcon"
+                  style="
+                    font-size: 16px;
+                    font-family: &quot;Cinzel&quot;, serif;
+                    color: var(--gold);
+                  "
+                  >▼</span
+                >
+              </div>
+              <div id="tier1cContent" style="padding: 14px; display: none">
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 10px;
+                    font-size: 13px;
+                  "
+                >
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      NAICS
+                    </div>
+                    <div class="code-btn" onclick="copyCode('238320')">
+                      238320 — Painting
+                    </div>
+                    <div class="code-btn" onclick="copyCode('561720')">
+                      561720 — Janitorial
+                    </div>
+                    <div class="code-btn" onclick="copyCode('5208')">
+                      5208 — Grounds
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      PSC
+                    </div>
+                    <div class="code-btn" onclick="copyCode('5201')">
+                      5201 — Custodial
+                    </div>
+                    <div class="code-btn" onclick="copyCode('Z1QA')">
+                      Z1QA — Maintenance
+                    </div>
+                    <div class="code-btn" onclick="copyCode('5208')">
+                      5208 — Grounds
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      TARGETS
+                    </div>
+                    <div class="code-btn" onclick="copyCode('UMHB BELTON')">
+                      UMHB BELTON
+                    </div>
+                    <div class="code-btn" onclick="copyCode('MICRO-PURCHASE')">
+                      MICRO-PURCHASE
+                    </div>
+                    <div class="code-btn" onclick="copyCode('GSA SCHEDULE')">
+                      GSA SCHEDULE
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-family: &quot;Cinzel&quot;, serif;
+                        font-size: 11px;
+                        letter-spacing: 0.08em;
+                        color: var(--gold);
+                        text-transform: uppercase;
+                        margin-bottom: 6px;
+                      "
+                    >
+                      KEYWORDS
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('GSA SCHEDULE JANITORIAL')"
+                    >
+                      GSA SCHEDULE
+                    </div>
+                    <div
+                      class="code-btn"
+                      onclick="copyCode('SIMPLIFIED ACQUISITION')"
+                    >
+                      SIMPLIFIED ACQ
+                    </div>
+                    <div class="code-btn" onclick="copyCode('MICRO-AWARD')">
+                      MICRO-AWARD
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style="
+                border-top: 1px solid rgba(201, 168, 76, 0.15);
+                margin-top: 16px;
+                padding-top: 12px;
+                font-size: 13px;
+                color: var(--dim);
+              "
+            >
+              <strong style="color: var(--gold)">Strategy:</strong> Hit all
+              three tiers. 60% time on Tier IA (backyard advantage). 20% on Tier
+              IB (less crowded, better terms). 20% on Tier IC (fast wins, build
+              CPARS).
+            </div>
+          </div>
+        </div>
+        <!-- /mainContent -->
+
+        <!-- SOL CRM SIDEBAR -->
+        <div id="solSidebar">
+          <button
+            class="sp-sidebar-toggle"
+            id="solPanelToggleBtn"
+            onclick="toggleSolPanel()"
+            title="Toggle Sol Panel"
+          >
+            ◀
+          </button>
+          <div class="sp-sidebar-inner">
+            <div class="sp-header">
+              <div class="sp-header-top">
+                <span class="sp-header-title">Sol Tracker</span>
+                <span id="solPanelCount">0 sols</span>
+              </div>
+              <div class="sp-filters">
+                <button
+                  class="sp-filter-btn active"
+                  data-filter="All"
+                  onclick="setSolFilter('All')"
+                >
+                  All
+                </button>
+                <button
+                  class="sp-filter-btn"
+                  data-filter="Active"
+                  onclick="setSolFilter('Active')"
+                >
+                  Active
+                </button>
+                <button
+                  class="sp-filter-btn"
+                  data-filter="Submitted"
+                  onclick="setSolFilter('Submitted')"
+                >
+                  Submitted
+                </button>
+                <button
+                  class="sp-filter-btn"
+                  data-filter="Awarded"
+                  onclick="setSolFilter('Awarded')"
+                >
+                  Awarded
+                </button>
+                <button
+                  class="sp-filter-btn"
+                  data-filter="No Award"
+                  onclick="setSolFilter('No Award')"
+                >
+                  No Award
+                </button>
+              </div>
+            </div>
+            <div class="sp-search-wrap">
+              <input
+                id="spSearchInput"
+                placeholder="Search archived bids…"
+                autocomplete="off"
+              />
+            </div>
+            <div id="spSearchResults"></div>
+            <div id="solPanelList"></div>
+          </div>
+        </div>
+      </div>
+      <!-- /app-layout -->
+    </div>
+    <!-- /container -->
+
+    <!-- HOW TO USE IFL OVERLAY -->
+    <div class="instructions-overlay" id="howToUseOverlay">
+      <div class="instructions-modal">
+        <button class="instructions-close" onclick="closeHowToUse()">✕</button>
+        <h2>How to Use IFL</h2>
+
+        <h3>Step 1 — Discovery</h3>
+        <p>
+          Paste solicitation results in
+          <span
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              color: var(--gold);
+            "
+            >TITLE | SOL_ID | DUE_DATE | SOURCE</span
+          >
+          format. Check the ones you want to pursue. Use the tier code library
+          to search SAM.gov, ESBD, and state portals.
+        </p>
+
+        <h3>Step 2 — Intake</h3>
+        <p>
+          Upload the solicitation PDF and Wage Determination PDF. Click Analyze.
+          AI reads both and auto-fills every contract field — scope, labor
+          categories, hours, WD rates, risk flags. Review and edit anything
+          that's off, then confirm.
+        </p>
+
+        <h3>Step 3 — Sourcing</h3>
+        <p>
+          AI auto-generates 4–6 sourcing candidates (staffing agencies, small
+          subs) near the contract location. Small/local firms surface first.
+          Click a card, confirm the bill rate, lock it in. Or enter your own sub
+          manually.
+        </p>
+
+        <h3>Step 4 — Pricing</h3>
+        <p>
+          Bill rate and WD floor auto-load. Set overhead and margin targets,
+          then run the calc. You get a GO / MARGINAL / NOGO verdict with full
+          bid math — gross profit, margin %, total contract value, net to owner.
+        </p>
+
+        <h3>Step 5 — Proposal</h3>
+        <p>
+          Click Generate Full Proposal. AI drafts a complete, submission-ready
+          response using all your contract data — scope understanding, technical
+          approach, subcontractor info, wage compliance, pricing. Copy,
+          download, or print.
+        </p>
+
+        <h3>Step 6 — Submit</h3>
+        <p>
+          Log your submission details (name, email, method). This creates a
+          record in your bid tracker. App resets, you're ready for the next
+          contract.
+        </p>
+
+        <h2>Key Rules</h2>
+        <ul>
+          <li>
+            <strong>Always pull the WD.</strong> Your labor cost floor is
+            non-negotiable.
+          </li>
+          <li>
+            <strong>Net-to-owner is the real number.</strong> Not top-line
+            contract value.
+          </li>
+          <li>
+            <strong>CPARS builds your past performance.</strong> Do good work on
+            every contract.
+          </li>
+          <li>
+            <strong>SCA compliance = certified payroll records.</strong> Keep
+            them. DOL audits.
+          </li>
+          <li>
+            <strong>Build sub relationships before you need them.</strong> Call
+            2–3 staffing agencies today.
+          </li>
+          <li>
+            <strong>Tier IA is your backyard.</strong> 60% effort there. VA +
+            SDVOSB = your lane.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="toastWrap"></div>
+
+    <script src="ifl-core.js"></script>
+    <script src="discovery.js"></script>
+    <script src="intake.js"></script>
+    <script src="sourcing.js"></script>
+    <script src="pricing.js"></script>
+    <script src="proposal.js"></script>
+    <script src="compliance.js"></script>
+    <script src="submit.js"></script>
+    <script src="invoice.js"></script>
+    <script src="winscore.js"></script>
+    <script src="subpacket.js"></script>
+    <script src="usaspending.js"></script>
+    <script src="solpanel.js"></script>
+  </body>
+</html>
