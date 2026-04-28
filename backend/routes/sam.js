@@ -7,29 +7,25 @@ const express = require("express");
 const fetch = require("node-fetch");
 const router = express.Router();
 
-/* ─── OPPORTUNITY SEARCH ──────────────────────── */
 router.get("/opportunities", async (req, res) => {
   const apiKey = process.env.SAM_API_KEY;
-  if (!apiKey) {
+  if (!apiKey)
     return res
       .status(503)
       .json({ error: "SAM_API_KEY not configured in .env" });
-  }
 
   const {
     keyword = "",
     naics = "",
     state = "TX",
     setAside = "",
-    agency = "",
     postedFrom = "",
     postedTo = "",
     limit = "25",
     offset = "0",
   } = req.query;
 
-  // SAM API doesn't support OR syntax in title — run multiple keyword searches
-  // and merge results if keyword contains OR
+  // Split OR keywords into separate searches
   const keywords = keyword
     ? keyword
         .split(/\s+OR\s+/i)
@@ -37,65 +33,66 @@ router.get("/opportunities", async (req, res) => {
         .filter(Boolean)
     : [""];
 
-  // Default date range: last 90 days → next 120 days
   const now = new Date();
   const from = postedFrom || fmtDate(new Date(now - 90 * 86400000));
   const to = postedTo || fmtDate(new Date(now.getTime() + 120 * 86400000));
 
-  const baseParams = {
-    api_key: apiKey,
-    ptype: "o,p", // solicitations + presolicitations
-    postedFrom: from,
-    postedTo: to,
-    limit: String(Math.min(parseInt(limit) || 25, 100)),
-    offset: String(parseInt(offset) || 0),
-    active: "Yes",
-  };
+  const lim = String(Math.min(parseInt(limit) || 25, 1000)); // SAM v2 supports up to 1000
 
-  if (state) baseParams.state = state;
-  if (naics) baseParams.ncode = naics;
-  if (setAside) baseParams.typeOfSetAside = mapSetAside(setAside);
-
-  console.log("[SAM] Base params:", baseParams);
-  console.log("[SAM] Keywords to search:", keywords);
+  console.log(
+    `[SAM] keywords=${JSON.stringify(keywords)} state=${state} setAside=${setAside} from=${from} to=${to} limit=${lim} offset=${offset}`,
+  );
 
   try {
-    // Run a search per keyword, merge + dedupe results
     const allOpps = [];
     const seen = new Set();
 
     for (const kw of keywords) {
-      const params = new URLSearchParams(baseParams);
-      if (kw) params.set("title", kw);
+      const p = new URLSearchParams({
+        api_key: apiKey,
+        postedFrom: from,
+        postedTo: to,
+        limit: lim,
+        offset: String(parseInt(offset) || 0),
+        ptype: "o,p,r", // solicitations, presolicitations, sources sought
+      });
 
-      const url = `https://api.sam.gov/prod/opportunities/v2/search?${params}`;
-      console.log("[SAM] Fetching:", url.replace(apiKey, "***"));
+      // SAM v2 correct param names
+      if (kw) p.set("keyword", kw);
+      if (state) p.set("state", state);
+      if (naics) p.set("ncode", naics);
+      if (setAside) p.set("typeOfSetAside", mapSetAside(setAside));
+
+      const url = `https://api.sam.gov/prod/opportunities/v2/search?${p}`;
+      console.log(`[SAM] → ${url.replace(apiKey, "***")}`);
 
       const r = await fetch(url, { headers: { Accept: "application/json" } });
       const text = await r.text();
 
+      console.log(`[SAM] ← ${r.status} | preview: ${text.slice(0, 300)}`);
+
       if (!r.ok) {
-        console.error(
-          `[SAM] API error for keyword "${kw}":`,
-          r.status,
-          text.slice(0, 300),
-        );
-        continue; // try next keyword instead of failing entirely
+        console.error(`[SAM] Non-OK for "${kw}"`);
+        continue;
       }
 
       let data;
       try {
         data = JSON.parse(text);
       } catch (e) {
-        console.error("[SAM] JSON parse error:", e.message, text.slice(0, 200));
+        console.error("[SAM] Parse error:", e.message);
         continue;
       }
 
+      const opps =
+        data.opportunitiesData || data._embedded?.opportunities || [];
       console.log(
-        `[SAM] Keyword "${kw}" → ${data.totalRecords || 0} total, ${(data.opportunitiesData || []).length} returned`,
+        `[SAM] "${kw}" → totalRecords=${data.totalRecords} | returned=${opps.length}`,
       );
+      if (!opps.length)
+        console.log("[SAM] Keys in response:", Object.keys(data));
 
-      for (const opp of data.opportunitiesData || []) {
+      for (const opp of opps) {
         const id = opp.noticeId || opp.solicitationNumber || opp.title;
         if (id && !seen.has(id)) {
           seen.add(id);
@@ -104,7 +101,7 @@ router.get("/opportunities", async (req, res) => {
       }
     }
 
-    console.log(`[SAM] Total unique opportunities: ${allOpps.length}`);
+    console.log(`[SAM] Total unique: ${allOpps.length}`);
     res.json({
       ok: true,
       total: allOpps.length,
@@ -112,30 +109,27 @@ router.get("/opportunities", async (req, res) => {
       opportunities: allOpps,
     });
   } catch (err) {
-    console.error("SAM fetch error:", err.message);
+    console.error("[SAM] Fatal:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-/* ─── OPPORTUNITY DETAIL ──────────────────────── */
 router.get("/opportunities/:noticeId", async (req, res) => {
   const apiKey = process.env.SAM_API_KEY;
   if (!apiKey)
     return res.status(503).json({ error: "SAM_API_KEY not configured" });
-
   const url = `https://api.sam.gov/prod/opportunities/v2/search?api_key=${apiKey}&noticeid=${req.params.noticeId}`;
   try {
     const r = await fetch(url);
-    const data = await r.json();
-    const opp = (data.opportunitiesData || [])[0];
-    if (!opp) return res.status(404).json({ error: "Opportunity not found" });
+    const d = await r.json();
+    const opp = (d.opportunitiesData || [])[0];
+    if (!opp) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true, opportunity: normalizeOpp(opp) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-/* ─── NORMALIZER — maps SAM fields to IFL schema ─── */
 function normalizeOpp(o) {
   return {
     noticeId: o.noticeId || "",
@@ -152,18 +146,14 @@ function normalizeOpp(o) {
     type: o.type || "",
     description: o.description || "",
     url: o.uiLink || `https://sam.gov/opp/${o.noticeId}/view`,
-    // IFL triage fields — populated by AI later
     verdict: null,
     reason: "",
     source: "SAM.gov",
   };
 }
 
-/* ─── HELPERS ─────────────────────────────────── */
 function fmtDate(d) {
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${m}/${day}/${d.getFullYear()}`;
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
 function mapSetAside(s) {

@@ -1103,9 +1103,9 @@
         min-width: 0;
         transition: all 0.25s ease;
       }
-      /* #mainContent.sp-expanded { */
-      /* sidebar collapsed — main takes full width */
-      /* } */
+      #mainContent.sp-expanded {
+        /* sidebar collapsed — main takes full width */
+      }
 
       #solSidebar {
         width: 280px;
@@ -1659,8 +1659,7 @@
                   <label>Keywords</label>
                   <input
                     id="samKeyword"
-                    value="janitorial OR landscaping OR painting"
-                    placeholder="e.g. janitorial OR custodial"
+                    placeholder="e.g. janitorial, custodial, painting (blank = all)"
                   />
                 </div>
                 <div class="form-group">
@@ -1671,9 +1670,8 @@
                   <label>State</label>
                   <input
                     id="samState"
-                    value="TX"
-                    placeholder="TX"
-                    style="width: 80px"
+                    placeholder="e.g. TX (blank = all)"
+                    style="width: 160px"
                   />
                 </div>
                 <div class="form-group">
@@ -1692,7 +1690,9 @@
                   <select id="samLimit">
                     <option value="25">25</option>
                     <option value="50">50</option>
-                    <option value="100">100</option>
+                    <option value="100" selected>100</option>
+                    <option value="250">250</option>
+                    <option value="500">500</option>
                   </select>
                 </div>
               </div>
@@ -1719,6 +1719,36 @@
                 id="samResultCount"
                 style="font-size: 13px; color: var(--dim); margin-top: 8px"
               ></div>
+              <div
+                id="samPagination"
+                style="
+                  display: none;
+                  margin-top: 10px;
+                  gap: 8px;
+                  align-items: center;
+                "
+              >
+                <button
+                  class="secondary"
+                  id="samPrevBtn"
+                  style="padding: 5px 14px; font-size: 13px"
+                  onclick="samPagePrev()"
+                >
+                  ← Prev
+                </button>
+                <span
+                  id="samPageInfo"
+                  style="font-size: 13px; color: var(--dim)"
+                ></span>
+                <button
+                  class="secondary"
+                  id="samNextBtn"
+                  style="padding: 5px 14px; font-size: 13px"
+                  onclick="samPageNext()"
+                >
+                  Next →
+                </button>
+              </div>
             </div>
 
             <!-- NAICS Quick Reference -->

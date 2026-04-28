@@ -191,22 +191,32 @@ function goToIntake() {
    SAM.gov PULL — backend-proxied opportunity fetch
 ═══════════════════════════════════════════════ */
 
-async function pullSamOpportunities() {
-  const keyword =
-    document.getElementById("samKeyword")?.value.trim() ||
-    "janitorial OR landscaping OR painting";
+let samOffset = 0;
+let samTotal = 0;
+let samPageSize = 100;
+let samLastParams = {};
+
+async function pullSamOpportunities(offset = 0) {
+  const keyword = document.getElementById("samKeyword")?.value.trim() || "";
   const naics = document.getElementById("samNaics")?.value.trim() || "";
-  const state = document.getElementById("samState")?.value.trim() || "TX";
-  const setAside = document.getElementById("samSetAside")?.value || "SDVOSB";
-  const limit = document.getElementById("samLimit")?.value || "25";
+  const state = document.getElementById("samState")?.value.trim() || "";
+  const setAside = document.getElementById("samSetAside")?.value || "";
+  const limit = document.getElementById("samLimit")?.value || "100";
+
+  samLastParams = { keyword, naics, state, setAside, limit };
+  samOffset = offset;
+  samPageSize = parseInt(limit) || 100;
 
   const btn = document.getElementById("samPullBtn");
   const spin = document.getElementById("samThinking");
   if (btn) btn.disabled = true;
   if (spin) spin.classList.remove("hidden");
 
-  const params = new URLSearchParams({ keyword, state, setAside, limit });
+  const params = new URLSearchParams({ limit, offset: String(offset) });
+  if (keyword) params.set("keyword", keyword);
+  if (state) params.set("state", state);
   if (naics) params.set("naics", naics);
+  if (setAside) params.set("setAside", setAside);
 
   try {
     console.log(
@@ -243,11 +253,12 @@ async function pullSamOpportunities() {
       return;
     }
 
-    // Normalize to discovery item format and append
+    samTotal = data.total || data.opportunities.length;
+
     const newItems = data.opportunities.map((o) => ({
       title: o.title,
       sol: o.solId,
-      due: o.dueDate,
+      due: cleanDate(o.dueDate),
       agency: o.agency,
       location: o.location,
       naics: o.naics,
@@ -262,9 +273,6 @@ async function pullSamOpportunities() {
     }));
 
     bidData.discovery = bidData.discovery || { items: [] };
-    const before = bidData.discovery.items.length;
-
-    // Dedupe by solId
     const existing = new Set(
       bidData.discovery.items.map((i) => i.sol).filter(Boolean),
     );
@@ -272,12 +280,17 @@ async function pullSamOpportunities() {
     bidData.discovery.items.push(...added);
     save();
     renderDiscoveryList();
+
+    const page = Math.floor(offset / samPageSize) + 1;
+    const maxPage = Math.ceil(samTotal / samPageSize);
     showToast(
-      `✓ ${added.length} new opportunities from SAM.gov (${data.total} total found)`,
+      `✓ ${added.length} new opportunities added (page ${page} of ${maxPage})`,
     );
 
     document.getElementById("samResultCount").textContent =
-      `${data.total} total · ${added.length} added · ${data.count} returned`;
+      `${samTotal} total on SAM · ${added.length} added this page · ${bidData.discovery.items.length} in your list`;
+
+    updateSamPagination();
   } catch (err) {
     console.error("[SAM Pull] Fetch error:", err);
     console.error("[SAM Pull] Error name:", err.name);
@@ -298,8 +311,41 @@ async function pullSamOpportunities() {
   }
 }
 
+function samPageNext() {
+  if (samOffset + samPageSize < samTotal)
+    pullSamOpportunities(samOffset + samPageSize);
+}
+
+function samPagePrev() {
+  if (samOffset > 0) pullSamOpportunities(Math.max(0, samOffset - samPageSize));
+}
+
+function updateSamPagination() {
+  const pg = document.getElementById("samPagination");
+  const info = document.getElementById("samPageInfo");
+  const prev = document.getElementById("samPrevBtn");
+  const next = document.getElementById("samNextBtn");
+  if (!pg) return;
+
+  pg.style.display = "flex";
+  const page = Math.floor(samOffset / samPageSize) + 1;
+  const maxPage = Math.ceil(samTotal / samPageSize) || 1;
+  if (info)
+    info.textContent = `Page ${page} of ${maxPage} (${samTotal} total on SAM)`;
+  if (prev) prev.disabled = samOffset === 0;
+  if (next)
+    next.disabled =
+      samTotal <= samPageSize || samOffset + samPageSize >= samTotal;
+}
+
+function cleanDate(raw) {
+  if (!raw) return "";
+  // Strip ISO timestamp → readable date
+  // "2026-05-20T15:00:00-05:00" → "2026-05-20"
+  return raw.split("T")[0] || raw;
+}
+
 async function triageAllSam() {
-  // Triage only items from SAM.gov that haven't been triaged yet
   const untriaged = (bidData.discovery?.items || []).filter(
     (i) => i.source === "SAM.gov" && !i.verdict,
   );
@@ -308,7 +354,9 @@ async function triageAllSam() {
     return;
   }
   if (
-    !confirm(`Triage ${untriaged.length} SAM opportunities? Uses API tokens.`)
+    !confirm(
+      `Triage ${untriaged.length} SAM opportunities in batches? Uses API tokens.`,
+    )
   )
     return;
 
@@ -330,55 +378,60 @@ HVAC installation/repair/maintenance, electrical work, plumbing, fire suppressio
 MARGINAL — mixed scope, unclear, or requires one licensed trade among mostly general labor.
 
 ALSO assess estimated contract value from any clues in the title or description:
-- Building count, square footage, number of personnel, facility type, shift requirements all indicate scale
-- A single small office = low value ($20K–$60K/yr)
-- A clinic or mid-size facility = medium ($60K–$200K/yr)  
-- A base, campus, or multi-building = high ($200K+/yr)
-- Staffing contracts: headcount × hours × rate estimate
+- Single small office = low ($20K–$60K/yr), clinic/mid facility = medium ($60K–$200K/yr), base/campus/multi-building = high ($200K+/yr)
 
 Return ONLY a JSON array — one object per contract — no other text:
-[{
-  "verdict": "GO" | "MARGINAL" | "PASS",
-  "reason": "one sentence — what the work is and why GO/MARGINAL/PASS",
-  "valueEst": "$X–$Y/yr" | "unknown",
-  "licenseRisk": true | false
-}]`;
+[{"verdict":"GO"|"MARGINAL"|"PASS","reason":"one sentence","valueEst":"$X–$Y/yr"|"unknown","licenseRisk":true|false}]`;
 
-  const contractList = untriaged
-    .map(
-      (it, i) =>
-        `${i + 1}. ${it.title}${it.sol ? " | SOL:" + it.sol : ""}${it.naics ? " | NAICS:" + it.naics : ""}${it.agency ? " | " + it.agency : ""}${it.location ? " | " + it.location : ""}${it.description ? " | DESC: " + it.description.slice(0, 300) : ""}`,
-    )
-    .join("\n");
+  const BATCH = 15;
+  let triaged = 0;
+  let failed = 0;
 
-  try {
-    const response = await callClaude(
-      [
-        {
-          role: "user",
-          content: `Triage these ${untriaged.length} SAM opportunities:\n\n${contractList}`,
-        },
-      ],
-      SYSTEM,
-      800,
-    );
-    const clean = response.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean);
-    parsed.forEach((r, i) => {
-      if (untriaged[i]) {
-        untriaged[i].verdict = r.verdict;
-        untriaged[i].reason = r.reason;
-        untriaged[i].valueEst = r.valueEst || "";
-        untriaged[i].licenseRisk = r.licenseRisk || false;
-      }
-    });
-    save();
-    renderDiscoveryList();
-    showToast(`✓ Triaged ${untriaged.length} SAM opportunities`);
-  } catch (e) {
-    showToast("Triage failed", true);
-  } finally {
-    think.classList.add("hidden");
-    btn.disabled = false;
+  for (let i = 0; i < untriaged.length; i += BATCH) {
+    const batch = untriaged.slice(i, i + BATCH);
+    const contractList = batch
+      .map(
+        (it, j) =>
+          `${j + 1}. ${it.title}${it.sol ? " | SOL:" + it.sol : ""}${it.naics ? " | NAICS:" + it.naics : ""}${it.agency ? " | " + it.agency : ""}${it.location ? " | " + it.location : ""}${it.description ? " | " + it.description.slice(0, 200) : ""}`,
+      )
+      .join("\n");
+
+    try {
+      const response = await callClaude(
+        [
+          {
+            role: "user",
+            content: `Triage these ${batch.length} opportunities:\n\n${contractList}`,
+          },
+        ],
+        SYSTEM,
+        4000,
+      );
+      const clean = response.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      parsed.forEach((r, j) => {
+        if (batch[j]) {
+          batch[j].verdict = r.verdict;
+          batch[j].reason = r.reason;
+          batch[j].valueEst = r.valueEst || "";
+          batch[j].licenseRisk = r.licenseRisk || false;
+          triaged++;
+        }
+      });
+      save();
+      renderDiscoveryList();
+      showToast(
+        `✓ Triaged ${Math.min(i + BATCH, untriaged.length)} of ${untriaged.length}...`,
+      );
+    } catch (e) {
+      console.error(`[Triage] Batch ${i}–${i + BATCH} failed:`, e.message);
+      failed += batch.length;
+    }
   }
+
+  think.classList.add("hidden");
+  btn.disabled = false;
+  showToast(
+    `✓ Triage complete — ${triaged} scored${failed ? `, ${failed} failed` : ""}`,
+  );
 }
