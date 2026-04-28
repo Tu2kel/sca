@@ -28,45 +28,89 @@ router.get("/opportunities", async (req, res) => {
     offset = "0",
   } = req.query;
 
-  // Default date range: last 60 days → next 90 days
-  const now = new Date();
-  const from = postedFrom || fmtDate(new Date(now - 60 * 86400000));
-  const to = postedTo || fmtDate(new Date(now.getTime() + 90 * 86400000));
+  // SAM API doesn't support OR syntax in title — run multiple keyword searches
+  // and merge results if keyword contains OR
+  const keywords = keyword
+    ? keyword
+        .split(/\s+OR\s+/i)
+        .map((k) => k.trim())
+        .filter(Boolean)
+    : [""];
 
-  const params = new URLSearchParams({
+  // Default date range: last 90 days → next 120 days
+  const now = new Date();
+  const from = postedFrom || fmtDate(new Date(now - 90 * 86400000));
+  const to = postedTo || fmtDate(new Date(now.getTime() + 120 * 86400000));
+
+  const baseParams = {
     api_key: apiKey,
-    ptype: "o", // presolicitation + solicitation
+    ptype: "o,p", // solicitations + presolicitations
     postedFrom: from,
     postedTo: to,
     limit: String(Math.min(parseInt(limit) || 25, 100)),
     offset: String(parseInt(offset) || 0),
     active: "Yes",
-  });
+  };
 
-  if (keyword) params.set("title", keyword);
-  if (state) params.set("state", state);
-  if (naics) params.set("ncode", naics);
-  if (setAside) params.set("typeOfSetAside", mapSetAside(setAside));
-  if (agency) params.set("organizationId", agency); // org code, not name
+  if (state) baseParams.state = state;
+  if (naics) baseParams.ncode = naics;
+  if (setAside) baseParams.typeOfSetAside = mapSetAside(setAside);
 
-  const url = `https://api.sam.gov/prod/opportunities/v2/search?${params}`;
+  console.log("[SAM] Base params:", baseParams);
+  console.log("[SAM] Keywords to search:", keywords);
 
   try {
-    const r = await fetch(url, { headers: { Accept: "application/json" } });
-    const text = await r.text();
+    // Run a search per keyword, merge + dedupe results
+    const allOpps = [];
+    const seen = new Set();
 
-    if (!r.ok) {
-      console.error("SAM API error:", r.status, text.slice(0, 300));
-      return res
-        .status(r.status)
-        .json({ error: `SAM API ${r.status}`, detail: text.slice(0, 200) });
+    for (const kw of keywords) {
+      const params = new URLSearchParams(baseParams);
+      if (kw) params.set("title", kw);
+
+      const url = `https://api.sam.gov/prod/opportunities/v2/search?${params}`;
+      console.log("[SAM] Fetching:", url.replace(apiKey, "***"));
+
+      const r = await fetch(url, { headers: { Accept: "application/json" } });
+      const text = await r.text();
+
+      if (!r.ok) {
+        console.error(
+          `[SAM] API error for keyword "${kw}":`,
+          r.status,
+          text.slice(0, 300),
+        );
+        continue; // try next keyword instead of failing entirely
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("[SAM] JSON parse error:", e.message, text.slice(0, 200));
+        continue;
+      }
+
+      console.log(
+        `[SAM] Keyword "${kw}" → ${data.totalRecords || 0} total, ${(data.opportunitiesData || []).length} returned`,
+      );
+
+      for (const opp of data.opportunitiesData || []) {
+        const id = opp.noticeId || opp.solicitationNumber || opp.title;
+        if (id && !seen.has(id)) {
+          seen.add(id);
+          allOpps.push(normalizeOpp(opp));
+        }
+      }
     }
 
-    const data = JSON.parse(text);
-    const opps = (data.opportunitiesData || []).map(normalizeOpp);
-    const total = data.totalRecords || opps.length;
-
-    res.json({ ok: true, total, count: opps.length, opportunities: opps });
+    console.log(`[SAM] Total unique opportunities: ${allOpps.length}`);
+    res.json({
+      ok: true,
+      total: allOpps.length,
+      count: allOpps.length,
+      opportunities: allOpps,
+    });
   } catch (err) {
     console.error("SAM fetch error:", err.message);
     res.status(500).json({ error: err.message });
