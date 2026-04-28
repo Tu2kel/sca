@@ -1103,9 +1103,9 @@
         min-width: 0;
         transition: all 0.25s ease;
       }
-      /* #mainContent.sp-expanded { */
-      /* sidebar collapsed — main takes full width */
-      /* } */
+      #mainContent.sp-expanded {
+        /* sidebar collapsed — main takes full width */
+      }
 
       #solSidebar {
         width: 280px;
@@ -3953,85 +3953,159 @@
     <div class="instructions-overlay" id="howToUseOverlay">
       <div class="instructions-modal">
         <button class="instructions-close" onclick="closeHowToUse()">✕</button>
-        <h2>How to Use IFL</h2>
+        <h2>How to Use IFL — Service Contract Engine</h2>
+        <p style="font-size: 13px; color: var(--dim); margin-bottom: 18px">
+          The House of Kel LLC · CAGE 152U4 · SDVOSB · Full bid lifecycle:
+          Discovery → Invoice
+        </p>
 
         <h3>Step 1 — Discovery</h3>
         <p>
-          Paste solicitation results in
+          Two ways to load opportunities. <strong>Paste:</strong> copy listings
+          from SAM.gov or ESBD in
           <span
             style="
               font-family: &quot;JetBrains Mono&quot;, monospace;
               color: var(--gold);
             "
-            >TITLE | SOL_ID | DUE_DATE | SOURCE</span
+            >TITLE | SOL# | DUE | AGENCY | LOCATION</span
           >
-          format. Check the ones you want to pursue. Use the tier code library
-          to search SAM.gov, ESBD, and state portals.
+          format and hit AI Triage — the engine scores each one GO / MARGINAL /
+          PASS against your service lanes and set-aside profile.
+          <strong>SAM Pull:</strong> enter keywords, NAICS, state, and set-aside
+          then hit Pull SAM.gov Opportunities — your backend fetches live
+          results directly from the SAM API and drops them into your list.
+          Triage SAM Items to score the pulled batch. Select a GO contract and
+          proceed.
         </p>
 
         <h3>Step 2 — Intake</h3>
         <p>
-          Upload the solicitation PDF and Wage Determination PDF. Click Analyze.
-          AI reads both and auto-fills every contract field — scope, labor
-          categories, hours, WD rates, risk flags. Review and edit anything
-          that's off, then confirm.
+          Upload the SOW and Wage Determination PDFs. Copy the extraction prompt
+          and run it through ChatGPT (AI Mode) with both files attached — it
+          parses the entire solicitation and returns structured JSON. Paste the
+          JSON output into the app and click Parse JSON. Every contract field
+          auto-fills: scope, labor categories, hours, WD rates, risk flags,
+          evaluation type (LPTA / Best Value). Review, edit anything off, log
+          any amendments (A0001, A0002, etc.), set evaluation type, then
+          confirm. The Compliance Checklist activates after confirmation — start
+          checking items as you complete them.
         </p>
 
         <h3>Step 3 — Sourcing</h3>
         <p>
-          AI auto-generates 4–6 sourcing candidates (staffing agencies, small
-          subs) near the contract location. Small/local firms surface first.
-          Click a card, confirm the bill rate, lock it in. Or enter your own sub
-          manually.
+          AI generates 4–6 subcontractor candidates near the place of
+          performance — staffing agencies, small subs, labor brokers. Each card
+          shows a credibility score based on gov experience, years in business,
+          and similar contracts. Small/local firms surface first. Click a card,
+          confirm the bill rate, add years in business and gov contract count,
+          then lock as Primary Sub. Set a Backup Sub from any other card or via
+          manual entry — backup is required for new/unproven subs and
+          strengthens your proposal. Hit Sub Onboarding Packet to generate a
+          print-ready agreement, SCA flow-down notice, and insurance
+          requirements doc for your locked sub.
         </p>
 
         <h3>Step 4 — Pricing</h3>
         <p>
-          Bill rate and WD floor auto-load. Set overhead and margin targets,
-          then run the calc. You get a GO / MARGINAL / NOGO verdict with full
-          bid math — gross profit, margin %, total contract value, net to owner.
+          Bill rate and WD floor auto-load from intake and sourcing. Set
+          overhead %, margin target, evaluation type, and pricing strategy
+          (Aggressive / Balanced / Safe). Hit Calculate — you get a full
+          breakdown: COGS, overhead, loaded rate, your government rate, gross
+          profit per hour, margin %, total contract value, net to owner. The
+          strategy band shows four price points (Floor / Aggressive / Balanced /
+          Safe) and a TARGET WIN PRICE calibrated to your eval type and
+          strategy. Use Past Award Lookup to query USASpending.gov for
+          historical awards in your NAICS and state — click Apply to pre-fill
+          the competitor range. A GO / MARGINAL / PASS verdict fires based on
+          margin threshold and WD compliance. Confirm pricing to lock it.
         </p>
 
         <h3>Step 5 — Proposal</h3>
         <p>
-          Click Generate Full Proposal. AI drafts a complete, submission-ready
-          response using all your contract data — scope understanding, technical
-          approach, subcontractor info, wage compliance, pricing. Copy,
-          download, or print.
+          Fill in section-level details — technical approach, staffing plan,
+          quality control, past performance, reps/certs. Click Generate Full
+          Proposal — AI builds a complete SAM-style response document using all
+          your contract data. The narrative is location-specific and
+          agency-specific, not generic boilerplate. Output includes: cover page,
+          Section B pricing schedule, Section C technical approach with your
+          backup sub and prime oversight language, Section H management plan,
+          Section K reps/certs, Section L past performance, a Risk Mitigation
+          section (top 3 contract-specific risks), and a Why Us section tailored
+          to this contract. Copy, download, or print.
         </p>
 
         <h3>Step 6 — Submit</h3>
         <p>
-          Log your submission details (name, email, method). This creates a
-          record in your bid tracker. App resets, you're ready for the next
-          contract.
+          The Win Readiness Score runs automatically — 10 checks across intake,
+          sourcing, pricing, compliance, and proposal. Hard blocks (incomplete
+          intake, no sub locked, below WD floor) prevent submission. Scores
+          below 60% require confirmation. Upload all submission files — they get
+          auto-named
+          <span
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              color: var(--gold);
+            "
+            >SOLID_Category_Filename.ext</span
+          >
+          and stored in a folder for this solicitation. Download the full ZIP
+          package when ready. Check your compliance score (target 80%+). Log
+          submission details and hit Submit — the bid is recorded in your
+          pipeline. The app resets for the next contract.
+        </p>
+
+        <h3>Step 7 — Invoice</h3>
+        <p>
+          After award, go to Step 7 to generate monthly invoices. Contract
+          banner auto-populates from your locked bid data — SOL#, agency, your
+          rate, subcontractor. Select the billing period (defaults to current
+          month), enter actual hours worked that period, add any ODCs. Hit
+          Generate — the invoice prints to a new window ready to submit to the
+          government via IPP or email. Invoice history tracks all periods billed
+          for this contract with running total. After generating, the period
+          auto-advances to the next month. Remember: you also receive an invoice
+          from your sub — pay them from what the government pays you. The spread
+          is your margin.
         </p>
 
         <h2>Key Rules</h2>
         <ul>
           <li>
-            <strong>Always pull the WD.</strong> Your labor cost floor is
-            non-negotiable.
+            <strong>WD floor is law.</strong> Your bill rate must be at or above
+            the SCA wage floor. Violating it = DOL audit, back wages, debarment.
+          </li>
+          <li>
+            <strong>1099s on SCA-covered work = illegal.</strong> Workers must
+            be W-2. Get it in writing in your sub agreement.
+          </li>
+          <li>
+            <strong>Always set a backup sub.</strong> Evaluators want to see
+            contingency. A call-out with no backup = cure notice.
           </li>
           <li>
             <strong>Net-to-owner is the real number.</strong> Not top-line
-            contract value.
+            contract value. GP/hr × hours = what you actually make.
           </li>
           <li>
-            <strong>CPARS builds your past performance.</strong> Do good work on
-            every contract.
+            <strong>LPTA = price wins.</strong> Best Value = price + narrative
+            wins. Know which one you're in before you price.
           </li>
           <li>
-            <strong>SCA compliance = certified payroll records.</strong> Keep
-            them. DOL audits.
+            <strong>Amendments must be acknowledged.</strong> Missing one
+            amendment = automatic disqualification.
           </li>
           <li>
-            <strong>Build sub relationships before you need them.</strong> Call
-            2–3 staffing agencies today.
+            <strong>CPARS builds your future.</strong> Every contract is a past
+            performance reference. Do the work right.
           </li>
           <li>
-            <strong>Tier IA is your backyard.</strong> 60% effort there. VA +
-            SDVOSB = your lane.
+            <strong>SCA compliance = certified payroll.</strong> Keep records 3
+            years. DOL can audit any time.
+          </li>
+          <li>
+            <strong>VA + SDVOSB = your lane.</strong> Fort Cavazos is backyard.
+            Work outward from there.
           </li>
         </ul>
       </div>
