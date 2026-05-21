@@ -16,11 +16,11 @@
 ═══════════════════════════════════════════════ */
 require("dotenv").config();
 const express = require("express");
-const cors    = require("cors");
-const path    = require("path");
+const cors = require("cors");
+const path = require("path");
 const { connect } = require("./db/mongo");
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ── Middleware ───────────────────────────────────────────────────
@@ -33,11 +33,11 @@ app.use(express.urlencoded({ extended: true }));
 // app.use(express.static(path.join(__dirname, "../frontend")));
 
 // ── Routes ───────────────────────────────────────────────────────
-app.use("/api/claude",   require("./routes/ai"));
-app.use("/api/bids",     require("./routes/bids"));
+app.use("/api/claude", require("./routes/ai"));
+app.use("/api/bids", require("./routes/bids"));
 app.use("/api/invoices", require("./routes/invoices"));
-app.use("/api/files",    require("./routes/files"));
-app.use("/api/sam",      require("./routes/sam"));
+app.use("/api/files", require("./routes/files"));
+app.use("/api/sam-entity", require("./routes/sam-entity"));
 
 // ── Legacy root POST — keeps old proxy.js behavior working ───────
 // Frontend callClaude() currently hits POST http://localhost:3001
@@ -47,10 +47,10 @@ app.post("/", require("./routes/ai"));
 // ── Health check ─────────────────────────────────────────────────
 app.get("/health", (req, res) => {
   res.json({
-    ok:      true,
+    ok: true,
     service: "IFL Backend",
-    cage:    "152U4",
-    time:    new Date().toISOString(),
+    cage: "152U4",
+    time: new Date().toISOString(),
   });
 });
 
@@ -65,14 +65,19 @@ async function start() {
   }
 
   app.listen(PORT, () => {
-    console.log(`\n╔══════════════════════════════════════╗`);
-    console.log(`║  IFL Backend — http://localhost:${PORT}  ║`);
-    console.log(`╠══════════════════════════════════════╣`);
-    console.log(`║  POST /api/claude   → OpenAI GPT-4o  ║`);
-    console.log(`║  CRUD /api/bids     → Bid pipeline   ║`);
-    console.log(`║  CRUD /api/invoices → Invoices        ║`);
-    console.log(`║  CRUD /api/files    → Sol packets     ║`);
-    console.log(`╚══════════════════════════════════════╝\n`);
+    console.log(`\n╔══════════════════════════════════════════╗`);
+    console.log(`║  IFL Backend — http://localhost:${PORT}    ║`);
+    console.log(`╠══════════════════════════════════════════╣`);
+    console.log(`║  POST /api/claude      → OpenAI GPT-4o   ║`);
+    console.log(`║  CRUD /api/bids        → Bid pipeline    ║`);
+    console.log(`║  CRUD /api/invoices    → Invoices        ║`);
+    console.log(`║  CRUD /api/files       → Sol packets     ║`);
+    console.log(`║  GET  /api/sam-entity  → SAM.gov verify  ║`);
+    console.log(`╚══════════════════════════════════════════╝\n`);
+    if (!process.env.SAM_API_KEY) {
+      console.warn("⚠  SAM_API_KEY not set — sub verification disabled.");
+      console.warn("   Get key: sam.gov/profile/details → Public API Key\n");
+    }
   });
 }
 
