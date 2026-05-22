@@ -73,8 +73,8 @@ function updateUI() {
     if (typeof initInvoiceStep === "function") initInvoiceStep();
   }
   if (STEPS[currentStep] === "submit") {
-    if (typeof initSubmitStep  === "function") initSubmitStep();
-    if (typeof initWinScore    === "function") initWinScore();
+    if (typeof initSubmitStep === "function") initSubmitStep();
+    if (typeof initWinScore === "function") initWinScore();
   }
 }
 
@@ -99,9 +99,8 @@ function copyToClipboard(text) {
     .catch(() => showToast("Copy failed", true));
 }
 
-/* ─── AI CALL — routes through backend/server.js → OpenAI GPT-4o ─── */
 async function callClaude(messages, systemPrompt, maxTokens = 1500) {
-  const res = await fetch("http://localhost:3001/api/claude", {
+  const res = await fetch("/api/claude", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
